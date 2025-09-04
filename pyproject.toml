@@ -1,0 +1,37 @@
+[project]
+name = "dynadock"
+version = "0.1.0"
+description = "Dynamic Docker Compose orchestrator with automatic port allocation and TLS"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "Tom Sapletta", email = "info@softreck.dev"}
+]
+
+# Runtime dependencies
+dependencies = [
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "docker>=7.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "psutil>=5.9.0",
+    "jinja2>=3.1.0",
+]
+
+[project.scripts]
+dynadock = "dynadock.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/dynadock/__init__.py"
+
+[tool.uv]
+# Development extras that `make dev` will install
+# These are duplicated from markdown docs for convenience
+# Duplicate lines will be ignored by pip/uv
+# See Makefile for install command
+# NOTE: We deliberately put dev dependencies here rather than extras to keep pyproject simple

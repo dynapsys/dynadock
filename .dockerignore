@@ -1,0 +1,47 @@
+# DynaDock Dockerignore
+# -----------------------------------------------------------------------------
+# Similar to .gitignore but for docker build-context optimisation.
+
+# Python artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+env/
+venv/
+ENV/
+
+# Build artefacts
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Testing artefacts
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# IDE configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Binary docs
+*.pdf
+
+# DynaDock runtime artefacts
+.dynadock/
+.env.dynadock
+.dynadock-compose.yaml
+*.log
+
+# VCS
+.git/

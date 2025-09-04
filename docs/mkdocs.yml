@@ -1,0 +1,55 @@
+site_name: DynaDock Documentation
+site_url: https://dynadock.dev
+site_author: Your Name
+site_description: Dynamic Docker Compose orchestrator with automatic port allocation and TLS
+
+# Documentation markdown lives in ./content relative to this config
+docs_dir: content
+
+repo_name: yourusername/dynadock
+repo_url: https://github.com/yourusername/dynadock
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - toc.integrate
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - Examples:
+      - Simple Project: examples/simple.md

@@ -1,0 +1,7 @@
+services:
+  api:
+    image: ghcr.io/example/flask-api:latest
+    ports:
+      - "5000"  # ← hard-coded port that may clash
+  redis:
+    image: redis:7-alpine

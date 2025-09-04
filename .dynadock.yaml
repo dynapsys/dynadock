@@ -1,0 +1,8 @@
+port_range:
+  start: 8000
+  end: 8999
+
+tls:
+  enabled: true
+
+domain: local.dev

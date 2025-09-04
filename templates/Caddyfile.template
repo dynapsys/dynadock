@@ -1,0 +1,49 @@
+# DynaDock Caddyfile Template
+# Auto-generated – DO NOT EDIT MANUALLY
+# This template is rendered by dynadock.caddy_config.CaddyConfig using Jinja2.
+# It intentionally implements only the commonly-used functionality. Feel free
+# to extend it once the project is boot-strapped.
+
+# --- Global options block ---------------------------------------------------
+{
+    admin off
+    {% if not enable_tls %}
+    auto_https off
+    {% endif %}
+}
+
+# A very small health-check endpoint (always plain HTTP so Caddy can start)
+:80 {
+    respond /health "OK" 200
+}
+
+{% if enable_tls %}
+# Redirect HTTP → HTTPS when TLS is enabled
+:80 {
+    redir https://{host}{uri} 308
+}
+{% endif %}
+
+# ---------------------------------------------------------------------------
+# Per-service virtual-hosts generated from docker-compose services
+# ---------------------------------------------------------------------------
+{% for service_name, config in services.items() %}
+{{ service_name }}.{{ domain }} {
+    {% if enable_tls %}
+    tls internal
+    {% endif %}
+
+    # CORS handling (very simple)
+    {% if cors_origins %}
+    header Access-Control-Allow-Origin "{% for o in cors_origins %}{{ o }}{% if not loop.last %}, {% endif %}{% endfor %}"
+    header Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS"
+    header Access-Control-Allow-Headers "*"
+    {% endif %}
+
+    # Reverse-proxy to the backing container on the dynamically allocated port
+    reverse_proxy {{ service_name }}:{{ config.port }} {
+        health_interval 10s
+        health_timeout 3s
+    }
+}
+{% endfor %}

@@ -1,0 +1,17 @@
+stages:
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# Use latest Docker image with Python 3.11
+image: python:3.11-slim
+
+before_script:
+  - pip install uv
+  - uv pip install -e ".[dev]"
+
+test:
+  stage: test
+  script:
+    - make test
