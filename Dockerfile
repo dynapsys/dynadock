@@ -17,7 +17,8 @@ RUN apt-get update -qq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install *uv* (fast drop-in replacement for pip / virtualenv)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && ln -s /root/.cargo/bin/uv /usr/local/bin/uv
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /app

@@ -32,14 +32,30 @@ def _run(
     cwd: Path | None = None,
     env: Dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Small helper around :pyfunc:`subprocess.run` with sane defaults."""
-    return subprocess.run(
+    """Run a command and stream its output in real-time."""
+    print(f"[dynadock] Running: {' '.join(cmd)}", flush=True)
+    process = subprocess.Popen(
         cmd,
-        cwd=str(cwd) if cwd is not None else None,
-        env=env,
-        check=False,  # we handle errors manually
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
+        cwd=cwd,
+        env=env,
+    )
+
+    output = []
+    if process.stdout:
+        for line in iter(process.stdout.readline, ""):
+            print(line, end="", flush=True)
+            output.append(line)
+
+    process.wait()
+
+    return subprocess.CompletedProcess(
+        args=cmd,
+        returncode=process.returncode,
+        stdout="".join(output),
+        stderr=None,  # stderr is redirected to stdout
     )
 
 

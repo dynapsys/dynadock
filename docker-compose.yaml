@@ -1,7 +1,7 @@
 services:
   api:
-    image: ghcr.io/example/flask-api:latest
+    image: nginxdemos/hello:plain-text
     ports:
-      - "5000"  # ← hard-coded port that may clash
+      - "80"  # ← hard-coded port that may clash
   redis:
     image: redis:7-alpine

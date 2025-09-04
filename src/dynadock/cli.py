@@ -156,14 +156,16 @@ def up(  # noqa: D401
         progress.update(task, advance=1, description="Starting Caddy reverse-proxy…")
         caddy_config.start_caddy()
         progress.update(task, advance=1, description="Starting application containers…")
+
+    console.print("\n[bold green]Starting application containers...[/bold green]")
+    try:
         docker_manager.up(env_vars, detach=detach)
-        progress.update(task, advance=1, description="✓ All services started!")
+    except RuntimeError:
+        # The error is already printed by the _run function, so we just abort.
+        raise click.Abort()
 
+    console.print("\n[bold green]✓ All services started![/bold green]")
     _display_running_services(allocated_ports, domain, enable_tls)
-    console.print(f"[blue]Environment file written to [bold]{env_file}[/bold][/blue]")
-
-    if enable_tls:
-        console.print("[yellow]TLS is enabled via Caddy (internal PKI)[/yellow]")
 
 
 ###############################################################################
