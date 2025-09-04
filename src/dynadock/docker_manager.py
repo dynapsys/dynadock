@@ -120,8 +120,8 @@ class DockerManager:  # pylint: disable=too-many-public-methods
             if key in env:
                 print(f"[dynadock] {key}={env[key]}")  # noqa: T201 – small debug aid
 
-        cmd_args = ["-d"] if detach else []
-        cmd = self._compose_cmd("up", *cmd_args)
+        cmd_args = ["up", "-d"] if detach else ["up"]
+        cmd = self._compose_cmd(*cmd_args)
         result = _run(cmd, cwd=self.project_dir, env=env)
         if result.returncode != 0:
             raise RuntimeError(
