@@ -90,7 +90,7 @@ test_example() {
     
     # Start services
     print_color "$YELLOW" "Starting services..."
-    if ! dynadock up -d; then
+    if ! dynadock up --detach --enable-tls; then
         print_color "$RED" "Failed to start services for $example_name"
         dynadock logs
         dynadock down -v

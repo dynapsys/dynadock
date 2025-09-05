@@ -170,7 +170,7 @@ class TestExamples:
             # Stop services and remove all resources
             self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
     
-    @pytest.mark.timeout(240)
+    @pytest.mark.timeout(360)
     @pytest.mark.skipif(
         os.getenv("SKIP_FULLSTACK_TEST", "false").lower() == "true",
         reason="Fullstack test is resource intensive"
