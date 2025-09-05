@@ -77,7 +77,7 @@ postgres.local.dev {
 }
 
 # ------------------------------
-# Service: redis    (8002)
+# Service: redis    (8004)
 # ------------------------------
 redis.local.dev {
     
@@ -93,7 +93,7 @@ redis.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy redis:8002 {
+    reverse_proxy redis:8004 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -107,7 +107,7 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: adminer    (8003)
+# Service: adminer    (8005)
 # ------------------------------
 adminer.local.dev {
     
@@ -123,7 +123,7 @@ adminer.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy adminer:8003 {
+    reverse_proxy adminer:8005 {
         health_uri /health
         health_interval 10s
         health_timeout 5s

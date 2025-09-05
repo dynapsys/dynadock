@@ -27,7 +27,7 @@ let redisClient;
 async function connectDatabases() {
   // PostgreSQL
   pgClient = new Client({
-    connectionString: process.env.DATABASE_URL
+    connectionString: process.env.POSTGRES_DSN || process.env.DATABASE_URL
   });
   
   try {

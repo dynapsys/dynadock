@@ -13,26 +13,27 @@ if [ -z "$PORT" ]; then
   exit 1
 fi
 
-# Find the PID of the process listening on the specified port
-PID=$(sudo lsof -t -i:"$PORT" -sTCP:LISTEN)
+# Find PIDs of processes listening on the specified port
+PIDS=$(sudo lsof -t -i:"$PORT" -sTCP:LISTEN || true)
 
-if [ -z "$PID" ]; then
+if [ -z "$PIDS" ]; then
   echo "No process found listening on port $PORT."
   exit 0
 fi
 
-# Get the command name for the PID
-COMMAND_NAME=$(ps -p "$PID" -o comm=)
+# Display information for each process found
+for PID in $PIDS; do
+  COMMAND_NAME=$(ps -p "$PID" -o comm=)
+  echo "Process '$COMMAND_NAME' (PID: $PID) is listening on port $PORT."
+done
 
-echo "Process '$COMMAND_NAME' (PID: $PID) is listening on port $PORT."
-
-# Kill the process
-read -p "Are you sure you want to kill this process? [y/N] " -n 1 -r
+# Kill the processes
+read -p "Are you sure you want to kill these processes? [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  echo "Killing process $PID..."
-  sudo kill -9 "$PID"
-  echo "Process killed."
+  echo "Killing processes with PIDs: $PIDS..."
+  echo "$PIDS" | xargs sudo kill -9
+  echo "Processes killed."
 else
   echo "Aborted."
 fi

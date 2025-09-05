@@ -25,10 +25,10 @@ class TestExamples:
     
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self):
-        """Setup and cleanup for each test."""
+        """Setup for each test."""
+        # This fixture can be used for setup tasks if needed in the future.
+        # Cleanup is handled in each test via try/finally.
         yield
-        # Cleanup after test
-        subprocess.run(["dynadock", "down"], capture_output=True, text=True)
     
     def wait_for_service(self, url, timeout=TIMEOUT):
         """Wait for a service to be available."""
@@ -76,36 +76,36 @@ class TestExamples:
         example_dir = EXAMPLES_DIR / "simple-web"
         env_file = example_dir / ".env.dynadock"
         
-        # Start services
-        result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir)
-        assert result.returncode == 0, f"Failed to start services: {result.stderr}"
-        
-        # Give services time to start and get port allocations
-        time.sleep(5)
-        
-        # Get allocated ports
-        ports = self.get_service_ports(env_file)
-        web_port = ports.get('web', 8000)
-        api_port = ports.get('api', 8001)
-        
-        # Wait for services to be ready
-        assert self.wait_for_service(f"http://localhost:{web_port}"), f"Web service did not start on port {web_port}"
-        assert self.wait_for_service(f"http://localhost:{api_port}"), f"API service did not start on port {api_port}"
-        
-        # Test web service
-        response = requests.get(f"http://localhost:{web_port}")
-        assert response.status_code == 200
-        assert "DynaDock Simple Web Example" in response.text
-        
-        # Test API service  
-        response = requests.get(f"http://localhost:{api_port}")
-        assert response.status_code == 200
-        # The nginxdemos/hello image returns a plain text response
-        assert "Server address" in response.text or "nginx" in response.text.lower()
-        
-        # Stop services
-        result = self.run_dynadock_command(["down"], cwd=example_dir)
-        assert result.returncode == 0
+        try:
+            # Start services
+            result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir)
+            assert result.returncode == 0, f"Failed to start services: {result.stderr}"
+            
+            # Give services time to start and get port allocations
+            time.sleep(5)
+            
+            # Get allocated ports
+            ports = self.get_service_ports(env_file)
+            web_port = ports.get('web', 8000)
+            api_port = ports.get('api', 8001)
+            
+            # Wait for services to be ready
+            assert self.wait_for_service(f"http://localhost:{web_port}"), f"Web service did not start on port {web_port}"
+            assert self.wait_for_service(f"http://localhost:{api_port}"), f"API service did not start on port {api_port}"
+            
+            # Test web service
+            response = requests.get(f"http://localhost:{web_port}")
+            assert response.status_code == 200
+            assert "DynaDock Simple Web Example" in response.text
+            
+            # Test API service  
+            response = requests.get(f"http://localhost:{api_port}")
+            assert response.status_code == 200
+            # The nginxdemos/hello image returns a plain text response
+            assert "Server address" in response.text or "nginx" in response.text.lower()
+        finally:
+            # Stop services
+            self.run_dynadock_command(["down"], cwd=example_dir)
     
     @pytest.mark.timeout(180)
     def test_rest_api_example(self):
@@ -113,63 +113,62 @@ class TestExamples:
         example_dir = EXAMPLES_DIR / "rest-api"
         env_file = example_dir / ".env.dynadock"
         
-        # Start services
-        result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir)
-        assert result.returncode == 0, f"Failed to start services: {result.stderr}"
-        
-        # Give services and databases time to initialize
-        time.sleep(15)
-        
-        # Get allocated ports
-        ports = self.get_service_ports(env_file)
-        api_port = ports.get('api', 8000)
-        
-        # Wait for API service to be ready
-        assert self.wait_for_service(f"http://localhost:{api_port}/health"), f"API service did not start on port {api_port}"
-        
-        # Test health endpoint
-        api_port = ports.get('api', 8000)
-        response = requests.get(f"http://localhost:{api_port}/health")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] in ["ok", "degraded"]
-        assert "services" in data
-        
-        # Test API root
-        response = requests.get(f"http://localhost:{api_port}/")
-        assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "endpoints" in data
-        
-        # Test users endpoint
-        response = requests.get(f"http://localhost:{api_port}/api/users")
-        assert response.status_code == 200
-        data = response.json()
-        assert "users" in data
-        assert isinstance(data["users"], list)
-        
-        # Test creating a user
-        new_user = {"name": "Test User", "email": "test@example.com"}
-        response = requests.post(f"http://localhost:{api_port}/api/users", json=new_user)
-        assert response.status_code == 201
-        created_user = response.json()
-        assert created_user["name"] == new_user["name"]
-        assert created_user["email"] == new_user["email"]
-        
-        # Test cache endpoint
-        cache_data = {"value": "test_value", "ttl": 60}
-        response = requests.post(f"http://localhost:{api_port}/api/cache/test_key", json=cache_data)
-        assert response.status_code == 200
-        
-        response = requests.get(f"http://localhost:{api_port}/api/cache/test_key")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["value"] == "test_value"
-        
-        # Stop services
-        result = self.run_dynadock_command(["down"], cwd=example_dir)
-        assert result.returncode == 0
+        try:
+            # Start services
+            result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir)
+            assert result.returncode == 0, f"Failed to start services: {result.stderr}"
+            
+            # Give services and databases time to initialize
+            time.sleep(15)
+            
+            # Get allocated ports
+            ports = self.get_service_ports(env_file)
+            api_port = ports.get('api', 8000)
+            
+            # Wait for API service to be ready
+            assert self.wait_for_service(f"http://localhost:{api_port}/health"), f"API service did not start on port {api_port}"
+            
+            # Test health endpoint
+            response = requests.get(f"http://localhost:{api_port}/health")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] in ["ok", "degraded"]
+            assert "services" in data
+            
+            # Test API root
+            response = requests.get(f"http://localhost:{api_port}/")
+            assert response.status_code == 200
+            data = response.json()
+            assert "message" in data
+            assert "endpoints" in data
+            
+            # Test users endpoint
+            response = requests.get(f"http://localhost:{api_port}/api/users")
+            assert response.status_code == 200
+            data = response.json()
+            assert "users" in data
+            assert isinstance(data["users"], list)
+            
+            # Test creating a user
+            new_user = {"name": "Test User", "email": "test@example.com"}
+            response = requests.post(f"http://localhost:{api_port}/api/users", json=new_user)
+            assert response.status_code == 201
+            created_user = response.json()
+            assert created_user["name"] == new_user["name"]
+            assert created_user["email"] == new_user["email"]
+            
+            # Test cache endpoint
+            cache_data = {"value": "test_value", "ttl": 60}
+            response = requests.post(f"http://localhost:{api_port}/api/cache/test_key", json=cache_data)
+            assert response.status_code == 200
+            
+            response = requests.get(f"http://localhost:{api_port}/api/cache/test_key")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["value"] == "test_value"
+        finally:
+            # Stop services
+            self.run_dynadock_command(["down"], cwd=example_dir)
     
     @pytest.mark.timeout(240)
     @pytest.mark.skipif(
@@ -179,96 +178,104 @@ class TestExamples:
     def test_fullstack_example(self):
         """Test the fullstack example."""
         example_dir = EXAMPLES_DIR / "fullstack"
-        
-        # Start services
-        result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir, timeout=180)
-        assert result.returncode == 0, f"Failed to start services: {result.stderr}"
-        
-        # Wait for services to be ready
-        time.sleep(15)  # Give services more time to initialize
-        assert self.wait_for_service("http://localhost:3001"), "Frontend service did not start"
-        assert self.wait_for_service("http://localhost:3002/api/health"), "Backend service did not start"
-        
-        # Test backend health
-        response = requests.get("http://localhost:3002/api/health")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] in ["ok", "degraded"]
-        
-        # Test backend API root
-        response = requests.get("http://localhost:3002/api")
-        assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "endpoints" in data
-        
-        # Test user registration
-        user_data = {
-            "email": "testuser@example.com",
-            "password": "testpassword123",
-            "name": "Test User"
-        }
-        response = requests.post("http://localhost:3002/api/auth/register", json=user_data)
-        assert response.status_code == 201
-        data = response.json()
-        assert "token" in data
-        assert "user" in data
-        token = data["token"]
-        
-        # Test user login
-        login_data = {
-            "email": user_data["email"],
-            "password": user_data["password"]
-        }
-        response = requests.post("http://localhost:3002/api/auth/login", json=login_data)
-        assert response.status_code == 200
-        data = response.json()
-        assert "token" in data
-        
-        # Test authenticated endpoints
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        # Get profile
-        response = requests.get("http://localhost:3002/api/auth/profile", headers=headers)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["email"] == user_data["email"]
-        
-        # Create todo
-        todo_data = {"title": "Test todo item"}
-        response = requests.post("http://localhost:3002/api/todos", json=todo_data, headers=headers)
-        assert response.status_code == 201
-        todo = response.json()
-        assert todo["title"] == todo_data["title"]
-        todo_id = todo["id"]
-        
-        # Get todos
-        response = requests.get("http://localhost:3002/api/todos", headers=headers)
-        assert response.status_code == 200
-        todos = response.json()
-        assert len(todos) > 0
-        assert any(t["id"] == todo_id for t in todos)
-        
-        # Update todo
-        update_data = {"completed": True}
-        response = requests.put(f"http://localhost:3002/api/todos/{todo_id}", 
-                               json=update_data, headers=headers)
-        assert response.status_code == 200
-        updated_todo = response.json()
-        assert updated_todo["completed"] == True
-        
-        # Delete todo
-        response = requests.delete(f"http://localhost:3002/api/todos/{todo_id}", headers=headers)
-        assert response.status_code == 200
-        
-        # Test frontend is serving
-        response = requests.get("http://localhost:3001")
-        assert response.status_code == 200
-        assert "<!DOCTYPE html>" in response.text
-        
-        # Stop services
-        result = self.run_dynadock_command(["down"], cwd=example_dir)
-        assert result.returncode == 0
+        env_file = example_dir / ".env.dynadock"
+
+        try:
+            # Start services
+            result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir, timeout=180)
+            assert result.returncode == 0, f"Failed to start services: {result.stderr}"
+
+            # Give services more time to initialize
+            time.sleep(15)
+
+            # Get allocated ports
+            ports = self.get_service_ports(env_file)
+            frontend_port = ports.get('frontend', 8000)
+            backend_port = ports.get('backend', 8001)
+
+            # Wait for services to be ready
+            assert self.wait_for_service(f"http://localhost:{frontend_port}"), f"Frontend service did not start on port {frontend_port}"
+            assert self.wait_for_service(f"http://localhost:{backend_port}/api/health"), f"Backend service did not start on port {backend_port}"
+
+            # Test backend health
+            response = requests.get(f"http://localhost:{backend_port}/api/health")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] in ["ok", "degraded"]
+
+            # Test backend API root
+            response = requests.get(f"http://localhost:{backend_port}/api")
+            assert response.status_code == 200
+            data = response.json()
+            assert "message" in data
+            assert "endpoints" in data
+
+            # Test user registration
+            user_data = {
+                "email": "testuser@example.com",
+                "password": "testpassword123",
+                "name": "Test User"
+            }
+            response = requests.post(f"http://localhost:{backend_port}/api/auth/register", json=user_data)
+            assert response.status_code == 201
+            data = response.json()
+            assert "token" in data
+            assert "user" in data
+            token = data["token"]
+
+            # Test user login
+            login_data = {
+                "email": user_data["email"],
+                "password": user_data["password"]
+            }
+            response = requests.post(f"http://localhost:{backend_port}/api/auth/login", json=login_data)
+            assert response.status_code == 200
+            data = response.json()
+            assert "token" in data
+
+            # Test authenticated endpoints
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # Get profile
+            response = requests.get(f"http://localhost:{backend_port}/api/auth/profile", headers=headers)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["email"] == user_data["email"]
+
+            # Create todo
+            todo_data = {"title": "Test todo item"}
+            response = requests.post(f"http://localhost:{backend_port}/api/todos", json=todo_data, headers=headers)
+            assert response.status_code == 201
+            todo = response.json()
+            assert todo["title"] == todo_data["title"]
+            todo_id = todo["id"]
+
+            # Get todos
+            response = requests.get(f"http://localhost:{backend_port}/api/todos", headers=headers)
+            assert response.status_code == 200
+            todos = response.json()
+            assert len(todos) > 0
+            assert any(t["id"] == todo_id for t in todos)
+
+            # Update todo
+            update_data = {"completed": True}
+            response = requests.put(f"http://localhost:{backend_port}/api/todos/{todo_id}",
+                                   json=update_data, headers=headers)
+            assert response.status_code == 200
+            updated_todo = response.json()
+            assert updated_todo["completed"] == True
+
+            # Delete todo
+            response = requests.delete(f"http://localhost:{backend_port}/api/todos/{todo_id}", headers=headers)
+            assert response.status_code == 200
+
+            # Test frontend is serving
+            response = requests.get(f"http://localhost:{frontend_port}")
+            assert response.status_code == 200
+            assert "<!DOCTYPE html>" in response.text
+        finally:
+            # Stop services
+            self.run_dynadock_command(["down"], cwd=example_dir)
     
     def test_dynadock_health_check(self):
         """Test DynaDock's built-in health check functionality."""
