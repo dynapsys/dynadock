@@ -141,7 +141,8 @@ class DockerManager:  # pylint: disable=too-many-public-methods
             cmd.extend(["--rmi", "all"])
         result = _run(cmd, cwd=self.project_dir)
         if result.returncode != 0:
-            raise RuntimeError("docker-compose down failed:\n" + result.stderr)
+            # _run redirects stderr to stdout
+            raise RuntimeError("docker-compose down failed:\n" + result.stdout)
 
     def ps(self) -> List[Any]:  # noqa: D401 – returns docker objects
         filters = {"label": f"com.docker.compose.project={self.project_name}"}
