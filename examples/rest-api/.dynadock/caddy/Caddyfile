@@ -4,8 +4,6 @@
 {
     email admin@local.dev
     
-    auto_https off
-    
 }
 
 # Health endpoint on port 80 (always plain HTTP)
@@ -14,12 +12,18 @@
 }
 
 
+:443 {
+    tls internal
+}
+
 
 
 # ------------------------------
-# Service: api    (8004)
+# Service: api    (8000)
 # ------------------------------
 api.local.dev {
+    
+    tls internal
     
 
     header {
@@ -33,7 +37,7 @@ api.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8004
+    reverse_proxy localhost:8000
 
     log {
         output file /var/log/caddy/api.log
@@ -43,9 +47,11 @@ api.local.dev {
 }
 
 # ------------------------------
-# Service: postgres    (8005)
+# Service: postgres    (8001)
 # ------------------------------
 postgres.local.dev {
+    
+    tls internal
     
 
     header {
@@ -59,7 +65,7 @@ postgres.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8005
+    reverse_proxy localhost:8001
 
     log {
         output file /var/log/caddy/postgres.log
@@ -69,9 +75,11 @@ postgres.local.dev {
 }
 
 # ------------------------------
-# Service: redis    (8006)
+# Service: redis    (8002)
 # ------------------------------
 redis.local.dev {
+    
+    tls internal
     
 
     header {
@@ -85,7 +93,7 @@ redis.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8006
+    reverse_proxy localhost:8002
 
     log {
         output file /var/log/caddy/redis.log
@@ -95,9 +103,11 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: adminer    (8007)
+# Service: adminer    (8003)
 # ------------------------------
 adminer.local.dev {
+    
+    tls internal
     
 
     header {
@@ -111,7 +121,7 @@ adminer.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8007
+    reverse_proxy localhost:8003
 
     log {
         output file /var/log/caddy/adminer.log

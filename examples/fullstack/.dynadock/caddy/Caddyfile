@@ -4,8 +4,6 @@
 {
     email admin@local.dev
     
-    auto_https off
-    
 }
 
 # Health endpoint on port 80 (always plain HTTP)
@@ -14,12 +12,18 @@
 }
 
 
+:443 {
+    tls internal
+}
+
 
 
 # ------------------------------
 # Service: frontend    (8000)
 # ------------------------------
 frontend.local.dev {
+    
+    tls internal
     
 
     header {
@@ -47,6 +51,8 @@ frontend.local.dev {
 # ------------------------------
 backend.local.dev {
     
+    tls internal
+    
 
     header {
         Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
@@ -72,6 +78,8 @@ backend.local.dev {
 # Service: postgres    (8002)
 # ------------------------------
 postgres.local.dev {
+    
+    tls internal
     
 
     header {
@@ -99,6 +107,8 @@ postgres.local.dev {
 # ------------------------------
 redis.local.dev {
     
+    tls internal
+    
 
     header {
         Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
@@ -124,6 +134,8 @@ redis.local.dev {
 # Service: mailhog    (8004)
 # ------------------------------
 mailhog.local.dev {
+    
+    tls internal
     
 
     header {
