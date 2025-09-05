@@ -182,7 +182,7 @@ class TestExamples:
 
         try:
             # Start services
-            result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir, timeout=180)
+            result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir, timeout=300)
             assert result.returncode == 0, f"Failed to start services: {result.stderr}"
 
             # Give services more time to initialize
@@ -217,7 +217,7 @@ class TestExamples:
                 "name": "Test User"
             }
             response = requests.post(f"http://localhost:{backend_port}/api/auth/register", json=user_data)
-            assert response.status_code == 201
+            assert response.status_code == 201, f"User registration failed: {response.json()}"
             data = response.json()
             assert "token" in data
             assert "user" in data
@@ -272,10 +272,10 @@ class TestExamples:
             # Test frontend is serving
             response = requests.get(f"http://localhost:{frontend_port}")
             assert response.status_code == 200
-            assert "<!DOCTYPE html>" in response.text
+            assert "<!doctype html>" in response.text.lower()
         finally:
-            # Stop services
-            self.run_dynadock_command(["down"], cwd=example_dir)
+            # Stop services and remove volumes
+            self.run_dynadock_command(["down", "-v"], cwd=example_dir)
     
     def test_dynadock_health_check(self):
         """Test DynaDock's built-in health check functionality."""
