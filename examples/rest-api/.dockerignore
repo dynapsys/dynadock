@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.dynadock
+.dynadock
+*.log
+.DS_Store
+.git
+.gitignore
