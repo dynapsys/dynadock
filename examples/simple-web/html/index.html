@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DynaDock - Simple Web Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            text-align: center;
+        }
+        
+        .status {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .status.success {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        
+        .api-test {
+            margin: 2rem 0;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        #apiResponse {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+        
+        .service-list {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+        
+        .service-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .service-list li:before {
+            content: "✅";
+            margin-right: 0.5rem;
+        }
+        
+        .url {
+            color: #3b82f6;
+            text-decoration: none;
+            font-family: monospace;
+            background: #eff6ff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .url:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 DynaDock</h1>
+        
+        <div class="status success">
+            <strong>Status:</strong> Aplikacja działa poprawnie!
+        </div>
+        
+        <p style="text-align: center; color: #666; margin: 1rem 0;">
+            To jest przykładowa aplikacja web uruchomiona przez DynaDock.
+        </p>
+        
+        <ul class="service-list">
+            <li>Web Server: <a href="/" class="url">https://web.local.dev</a></li>
+            <li>API Server: <a href="https://api.local.dev" class="url">https://api.local.dev</a></li>
+        </ul>
+        
+        <div class="api-test">
+            <button onclick="testAPI()">Test API Connection</button>
+            <div id="apiResponse"></div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af;">
+                Powered by DynaDock | 
+                <a href="https://github.com/dynapsys/dynadock" style="color: #667eea;">GitHub</a>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        async function testAPI() {
+            const responseDiv = document.getElementById('apiResponse');
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = 'Łączenie z API...';
+            
+            try {
+                // Próba połączenia z API przez relative URL (Caddy proxy)
+                const response = await fetch('/api/');
+                const text = await response.text();
+                responseDiv.innerHTML = `✅ Odpowiedź API:\n${text}`;
+            } catch (error) {
+                responseDiv.innerHTML = `❌ Błąd połączenia:\n${error.message}`;
+            }
+        }
+        
+        // Test połączenia przy załadowaniu strony
+        window.addEventListener('load', () => {
+            console.log('DynaDock Simple Web Example loaded successfully!');
+        });
+    </script>
+</body>
+</html>
