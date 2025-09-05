@@ -175,8 +175,8 @@ def up(  # noqa: D401
             enable_tls=enable_tls,
             cors_origins=list(cors_origins),
         )
-        progress.update(task, advance=1, description="Rendering Caddy configuration…")
-        caddy_config.generate(services, allocated_ports, domain, enable_tls, list(cors_origins))
+        progress.update(task, advance=1, description="Rendering minimal Caddy configuration…")
+        caddy_config.generate_minimal()
         progress.update(task, advance=1, description="Starting Caddy reverse-proxy…")
         caddy_config.start_caddy()
         progress.update(task, advance=1, description="Starting application containers…")
@@ -188,9 +188,15 @@ def up(  # noqa: D401
             progress.update(task, advance=1)
         except RuntimeError as e:
             console.print(f"[red]Error: {e}[/red]")
+            caddy_config.stop_caddy()
             raise click.Abort()
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
+
+    # Generate the full Caddy config and reload Caddy
+    console.print("[dim]Configuring reverse-proxy...[/dim]")
+    caddy_config.generate(services, allocated_ports, domain, enable_tls, list(cors_origins))
+    caddy_config.reload_caddy()
     
     # Show service status and URLs
     status_by_service = docker_manager.ps()

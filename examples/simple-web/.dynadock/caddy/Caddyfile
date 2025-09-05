@@ -17,7 +17,7 @@
 
 
 # ------------------------------
-# Service: web    (8002)
+# Service: web    (8000)
 # ------------------------------
 web.local.dev {
     
@@ -33,11 +33,7 @@ web.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy web:8002 {
-        health_uri /health
-        health_interval 10s
-        health_timeout 5s
-    }
+    reverse_proxy localhost:8000
 
     log {
         output file /var/log/caddy/web.log
@@ -47,7 +43,7 @@ web.local.dev {
 }
 
 # ------------------------------
-# Service: api    (8003)
+# Service: api    (8001)
 # ------------------------------
 api.local.dev {
     
@@ -63,11 +59,7 @@ api.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy api:8003 {
-        health_uri /health
-        health_interval 10s
-        health_timeout 5s
-    }
+    reverse_proxy localhost:8001
 
     log {
         output file /var/log/caddy/api.log
