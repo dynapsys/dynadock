@@ -104,8 +104,8 @@ class TestExamples:
             # The nginxdemos/hello image returns a plain text response
             assert "Server address" in response.text or "nginx" in response.text.lower()
         finally:
-            # Stop services
-            self.run_dynadock_command(["down"], cwd=example_dir)
+            # Stop services and remove all resources
+            self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
     
     @pytest.mark.timeout(180)
     def test_rest_api_example(self):
@@ -167,8 +167,8 @@ class TestExamples:
             data = response.json()
             assert data["value"] == "test_value"
         finally:
-            # Stop services
-            self.run_dynadock_command(["down"], cwd=example_dir)
+            # Stop services and remove all resources
+            self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
     
     @pytest.mark.timeout(240)
     @pytest.mark.skipif(
@@ -274,8 +274,8 @@ class TestExamples:
             assert response.status_code == 200
             assert "<!doctype html>" in response.text.lower()
         finally:
-            # Stop services and remove volumes
-            self.run_dynadock_command(["down", "-v"], cwd=example_dir)
+            # Stop services and remove all resources
+            self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
     
     def test_dynadock_health_check(self):
         """Test DynaDock's built-in health check functionality."""
@@ -293,8 +293,8 @@ class TestExamples:
         assert result.returncode == 0, f"Status check failed: {result.stderr}"
         # Just verify the command works - exact output may vary
         
-        # Stop services
-        result = self.run_dynadock_command(["down"], cwd=example_dir)
+        # Stop services and remove all resources
+        result = self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
         assert result.returncode == 0
     
     @pytest.mark.skip(reason="Scaling not implemented in current dynadock version")
@@ -317,8 +317,8 @@ class TestExamples:
         container_count = len(lines) - 1  # Subtract header line
         assert container_count >= 2, f"Expected at least 2 api containers, got {container_count}"
         
-        # Stop services
-        result = self.run_dynadock_command(["down"], cwd=example_dir)
+        # Stop services and remove all resources
+        result = self.run_dynadock_command(["down", "--prune"], cwd=example_dir)
         assert result.returncode == 0
 
 

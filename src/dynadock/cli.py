@@ -227,6 +227,10 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     caddy_config = CaddyConfig(project_dir)
 
+    if prune:
+        remove_volumes = True
+        remove_images = True
+
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Stopping services…", total=3)
         progress.update(task, advance=1, description="Stopping application containers…")

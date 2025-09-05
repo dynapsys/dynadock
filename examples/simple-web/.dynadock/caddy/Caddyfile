@@ -17,7 +17,7 @@
 
 
 # ------------------------------
-# Service: web    (8000)
+# Service: web    (8002)
 # ------------------------------
 web.local.dev {
     
@@ -33,7 +33,7 @@ web.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy web:8000 {
+    reverse_proxy web:8002 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -47,7 +47,7 @@ web.local.dev {
 }
 
 # ------------------------------
-# Service: api    (8001)
+# Service: api    (8003)
 # ------------------------------
 api.local.dev {
     
@@ -63,7 +63,7 @@ api.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy api:8001 {
+    reverse_proxy api:8003 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
