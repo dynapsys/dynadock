@@ -1,7 +1,47 @@
 services:
   api:
     image: nginxdemos/hello:plain-text
-    ports:
-      - "80"  # ← hard-coded port that may clash
+    expose:
+      - "80"  # Expose port internally for Caddy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   redis:
     image: redis:7-alpine
+    expose:
+      - "6379"  # Expose port internally for Caddy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019"  # Caddy admin API
+    volumes:
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - app-network
+    depends_on:
+      - api
+      - redis
+
+networks:
+  app-network:
+    driver: bridge

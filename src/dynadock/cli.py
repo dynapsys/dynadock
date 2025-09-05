@@ -76,24 +76,48 @@ def _display_running_services(
     allocated_ports: Dict[str, int],
     domain: str,
     enable_tls: bool,
-    status_by_service: Dict[str, Tuple[str, str]] | None = None,
+    status_by_service: List[Any] | Dict[str, Tuple[str, str]] | None = None,
 ) -> None:
-    """Pretty-print a table with service → port/url mapping."""
+    """Pretty-print a table with service → port/url mapping.
+    
+    Args:
+        allocated_ports: Mapping of service names to their allocated ports
+        domain: Base domain for service URLs
+        enable_tls: Whether HTTPS should be used for URLs
+        status_by_service: Either a list of container objects or a dict mapping service names to (status, health) tuples
+    """
+    # Convert container list to status map if needed
+    status_map: Dict[str, Tuple[str, str]] = {}
+    if status_by_service is not None:
+        if isinstance(status_by_service, list):
+            # Convert list of containers to service → (status, health) mapping
+            for container in status_by_service:
+                service_lbl = container.labels.get("com.docker.compose.service", "unknown")
+                health = container.attrs.get("State", {}).get("Health", {}).get("Status", "-")
+                status_map[service_lbl] = (container.status, health)
+        else:
+            # Already in the correct format
+            status_map = status_by_service
 
     table = Table(title="Running Services", header_style="bold magenta")
     table.add_column("Service", style="cyan", no_wrap=True)
     table.add_column("Port", style="green", justify="right")
     table.add_column("URL", style="yellow")
-    if status_by_service:
+    
+    # Only add status/health columns if we have status info
+    show_status = bool(status_map)
+    if show_status:
         table.add_column("Status", style="blue")
         table.add_column("Health", style="magenta")
 
     for service, port in allocated_ports.items():
         url = f"{'https' if enable_tls else 'http'}://{service}.{domain}"
         row = [service, str(port), url]
-        if status_by_service:
-            status, health = status_by_service[service]
+        
+        if show_status:
+            status, health = status_map.get(service, ("-", "-"))
             row.extend([status, health])
+            
         table.add_row(*row)
 
     console.print(table)
@@ -115,7 +139,7 @@ def _display_running_services(
     multiple=True,
     help="Additional CORS allowed origins (can be passed multiple times).",
 )
-@click.option("--detach", is_flag=True, help="Run docker-compose in background.")
+@click.option("--detach", is_flag=True, help="Run in background without following logs")
 @click.pass_context
 def up(  # noqa: D401
     ctx: click.Context,
@@ -157,15 +181,30 @@ def up(  # noqa: D401
         caddy_config.start_caddy()
         progress.update(task, advance=1, description="Starting application containers…")
 
-    console.print("\n[bold green]Starting application containers...[/bold green]")
-    try:
-        docker_manager.up(env_vars, detach=detach)
-    except RuntimeError:
-        # The error is already printed by the _run function, so we just abort.
-        raise click.Abort()
+    with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
+        task = progress.add_task("Starting application containers...", total=1)
+        try:
+            docker_manager.up(env_vars, detach=True)  # Always detach to avoid hanging
+            progress.update(task, advance=1)
+        except RuntimeError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            raise click.Abort()
 
-    console.print("\n[bold green]✓ All services started![/bold green]")
-    _display_running_services(allocated_ports, domain, enable_tls)
+    console.print("\n[bold green]✓ All services started![/bold green]\n")
+    
+    # Show service status and URLs
+    status_by_service = docker_manager.ps()
+    _display_running_services(allocated_ports, domain, enable_tls, status_by_service)
+    
+    if not detach:
+        console.print("\n[dim]Press Ctrl+C to stop all services...[/dim]")
+        try:
+            # If not detaching, tail the logs
+            docker_manager.logs()
+        except KeyboardInterrupt:
+            console.print("\n[dim]Stopping services...[/dim]")
+            docker_manager.down()
+            console.print("\n[green]✓ All services stopped.[/green]")
 
 
 ###############################################################################
