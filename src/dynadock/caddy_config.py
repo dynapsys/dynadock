@@ -1,9 +1,3 @@
-"""Handle generation of a *Caddyfile* and start/stop a Caddy container.
-
-The Caddy reverse-proxy is optional and only required when TLS is enabled or
-when sub-domain routing is desired. We run it in its own container so that the
-host system does not need to have Caddy installed.
-"""
 from __future__ import annotations
 
 import subprocess
