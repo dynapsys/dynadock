@@ -2,7 +2,11 @@ version: '3.8'
 
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80"
     environment:
       - REACT_APP_API_URL=https://api.local.dev
       - NODE_ENV=development
@@ -15,7 +19,11 @@ services:
       retries: 3
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000"
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/appdb
       - REDIS_URL=redis://redis:6379
@@ -33,7 +41,9 @@ services:
       start_period: 40s
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:14-alpine
+    ports:
+      - "5432"
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
@@ -48,6 +58,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -59,6 +71,9 @@ services:
 
   mailhog:
     image: mailhog/mailhog
+    ports:
+      - "1025"
+      - "8025"
     environment:
       - MH_STORAGE=memory
       - MH_SMTP_BIND_ADDR=0.0.0.0:1025

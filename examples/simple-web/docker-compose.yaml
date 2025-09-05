@@ -3,6 +3,8 @@ version: '3.8'
 services:
   web:
     image: nginx:alpine
+    ports:
+      - "80"
     volumes:
       - ./html:/usr/share/nginx/html:ro
     environment:
@@ -17,6 +19,8 @@ services:
 
   api:
     image: nginxdemos/hello:plain-text
+    ports:
+      - "80"
     environment:
       - PORT=80
     healthcheck:
