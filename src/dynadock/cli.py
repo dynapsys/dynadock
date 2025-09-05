@@ -159,7 +159,7 @@ def up(  # noqa: D401
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Initializing…", total=6)
 
-        docker_manager = DockerManager(compose_file, project_dir)
+        docker_manager = DockerManager(compose_file, project_dir, env_file)
         env_generator = EnvGenerator(env_file)
         caddy_config = CaddyConfig(project_dir)
         progress.update(task, advance=1, description="Parsing docker-compose file…")
@@ -184,7 +184,7 @@ def up(  # noqa: D401
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Starting application containers...", total=1)
         try:
-            docker_manager.up(env_vars, detach=True)  # Always detach to avoid hanging
+            docker_manager.up(env_vars, detach=True)
             progress.update(task, advance=1)
         except RuntimeError as e:
             console.print(f"[red]Error: {e}[/red]")
@@ -222,8 +222,9 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
 
     compose_file: str = ctx.obj["compose_file"]
     project_dir: Path = ctx.obj["project_dir"]
+    env_file: str = ctx.obj["env_file"]
 
-    docker_manager = DockerManager(compose_file, project_dir)
+    docker_manager = DockerManager(compose_file, project_dir, env_file)
     caddy_config = CaddyConfig(project_dir)
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
@@ -258,7 +259,7 @@ def ps(ctx: click.Context) -> None:  # noqa: D401
     project_dir: Path = ctx.obj["project_dir"]
     env_file: str = ctx.obj["env_file"]
 
-    docker_manager = DockerManager(compose_file, project_dir)
+    docker_manager = DockerManager(compose_file, project_dir, env_file)
     containers = docker_manager.ps()
 
     if not containers:

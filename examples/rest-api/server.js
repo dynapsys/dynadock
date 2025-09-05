@@ -29,6 +29,11 @@ async function connectDatabases() {
   pgClient = new Client({
     connectionString: process.env.POSTGRES_DSN || process.env.DATABASE_URL
   });
+
+  // Handle asynchronous errors
+  pgClient.on('error', (err) => {
+    console.error('PostgreSQL client error:', err);
+  });
   
   try {
     await pgClient.connect();

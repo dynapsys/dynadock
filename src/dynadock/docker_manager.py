@@ -62,9 +62,10 @@ def _run(
 class DockerManager:  # pylint: disable=too-many-public-methods
     """Orchestrate *docker-compose* lifecycle on behalf of DynaDock."""
 
-    def __init__(self, compose_file: str | Path, project_dir: Path | None = None):
+    def __init__(self, compose_file: str | Path, project_dir: Path | None = None, env_file: str | None = None):
         self.compose_file = str(compose_file)
         self.project_dir = Path(project_dir or Path(compose_file).parent).resolve()
+        self.env_file = env_file
         self.client = docker.from_env()  # heavy import but only used on demand
         self.project_name = self._get_project_name()
 
@@ -102,14 +103,17 @@ class DockerManager:  # pylint: disable=too-many-public-methods
 
     # Compose wrappers -------------------------------------------------------
     def _compose_cmd(self, *args: str) -> List[str]:
-        return [
+        cmd = [
             "docker-compose",
             "-f",
             self.compose_file,
             "-p",
             self.project_name,
-            *args,
         ]
+        if self.env_file and Path(self.env_file).exists():
+            cmd.extend(["--env-file", self.env_file])
+        cmd.extend(args)
+        return cmd
 
     def up(self, env_vars: Dict[str, str], *, detach: bool = True) -> List[Any]:
         env = os.environ.copy()
