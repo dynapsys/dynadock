@@ -4,7 +4,7 @@ services:
   web:
     image: nginx:alpine
     ports:
-      - "80"
+      - "${WEB_PORT:-8000}:80"
     volumes:
       - ./html:/usr/share/nginx/html:ro
     environment:
@@ -20,7 +20,7 @@ services:
   api:
     image: nginxdemos/hello:plain-text
     ports:
-      - "80"
+      - "${API_PORT:-8001}:80"
     environment:
       - PORT=80
     healthcheck:
