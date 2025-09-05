@@ -47,7 +47,7 @@ frontend.local.dev {
 }
 
 # ------------------------------
-# Service: backend    (8002)
+# Service: backend    (8001)
 # ------------------------------
 backend.local.dev {
     
@@ -63,7 +63,7 @@ backend.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy backend:8002 {
+    reverse_proxy backend:8001 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -77,7 +77,7 @@ backend.local.dev {
 }
 
 # ------------------------------
-# Service: postgres    (8003)
+# Service: postgres    (8002)
 # ------------------------------
 postgres.local.dev {
     
@@ -93,7 +93,7 @@ postgres.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy postgres:8003 {
+    reverse_proxy postgres:8002 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -107,7 +107,7 @@ postgres.local.dev {
 }
 
 # ------------------------------
-# Service: redis    (8004)
+# Service: redis    (8003)
 # ------------------------------
 redis.local.dev {
     
@@ -123,7 +123,7 @@ redis.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy redis:8004 {
+    reverse_proxy redis:8003 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -137,7 +137,7 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: mailhog    (8005)
+# Service: mailhog    (8004)
 # ------------------------------
 mailhog.local.dev {
     
@@ -153,7 +153,7 @@ mailhog.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy mailhog:8005 {
+    reverse_proxy mailhog:8004 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
