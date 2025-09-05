@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: kong:3.4-alpine
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/kong/kong.yml
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+    volumes:
+      - ./kong.yml:/kong/kong.yml:ro
+    depends_on:
+      - auth-service
+      - user-service
+      - product-service
+      - order-service
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  auth-service:
+    build: ./services/auth
+    environment:
+      - JWT_SECRET=your-secret-key
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=3001
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  user-service:
+    build: ./services/user
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/userdb
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=3002
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  product-service:
+    build: ./services/product
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/products
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SERVICE_PORT=3003
+    depends_on:
+      - mongodb
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  order-service:
+    build: ./services/order
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/orderdb
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - SERVICE_PORT=3004
+    depends_on:
+      - postgres
+      - rabbitmq
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  notification-service:
+    build: ./services/notification
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SERVICE_PORT=3005
+    depends_on:
+      - rabbitmq
+      - mailhog
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_MULTIPLE_DATABASES=userdb,orderdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:6-jammy
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mailhog:
+    image: mailhog/mailhog
+    environment:
+      - MH_STORAGE=memory
+
+  prometheus:
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - gateway
+      - auth-service
+      - user-service
+      - product-service
+      - order-service
+
+  grafana:
+    image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  elastic_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
