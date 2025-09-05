@@ -4,6 +4,8 @@
 {
     email admin@local.dev
     
+    auto_https off
+    
 }
 
 # Health endpoint on port 80 (always plain HTTP)
@@ -12,18 +14,12 @@
 }
 
 
-:443 {
-    tls internal
-}
-
 
 
 # ------------------------------
 # Service: web    (8002)
 # ------------------------------
 web.local.dev {
-    
-    tls internal
     
 
     header {
@@ -50,8 +46,6 @@ web.local.dev {
 # Service: api    (8003)
 # ------------------------------
 api.local.dev {
-    
-    tls internal
     
 
     header {

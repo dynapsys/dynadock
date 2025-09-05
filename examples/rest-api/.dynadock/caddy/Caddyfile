@@ -17,61 +17,9 @@
 
 
 # ------------------------------
-# Service: api    (8000)
+# Service: api    (8002)
 # ------------------------------
 api.local.dev {
-    
-
-    header {
-        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
-        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-        Access-Control-Allow-Headers "*"
-        Access-Control-Allow-Credentials "true"
-        Access-Control-Max-Age "3600"
-    }
-
-    @options method OPTIONS
-    respond @options 204
-
-    reverse_proxy localhost:8000
-
-    log {
-        output file /var/log/caddy/api.log
-        format json
-        level info
-    }
-}
-
-# ------------------------------
-# Service: postgres    (8001)
-# ------------------------------
-postgres.local.dev {
-    
-
-    header {
-        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
-        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-        Access-Control-Allow-Headers "*"
-        Access-Control-Allow-Credentials "true"
-        Access-Control-Max-Age "3600"
-    }
-
-    @options method OPTIONS
-    respond @options 204
-
-    reverse_proxy localhost:8001
-
-    log {
-        output file /var/log/caddy/postgres.log
-        format json
-        level info
-    }
-}
-
-# ------------------------------
-# Service: redis    (8002)
-# ------------------------------
-redis.local.dev {
     
 
     header {
@@ -88,6 +36,58 @@ redis.local.dev {
     reverse_proxy localhost:8002
 
     log {
+        output file /var/log/caddy/api.log
+        format json
+        level info
+    }
+}
+
+# ------------------------------
+# Service: postgres    (8003)
+# ------------------------------
+postgres.local.dev {
+    
+
+    header {
+        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
+        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+        Access-Control-Allow-Headers "*"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "3600"
+    }
+
+    @options method OPTIONS
+    respond @options 204
+
+    reverse_proxy localhost:8003
+
+    log {
+        output file /var/log/caddy/postgres.log
+        format json
+        level info
+    }
+}
+
+# ------------------------------
+# Service: redis    (8005)
+# ------------------------------
+redis.local.dev {
+    
+
+    header {
+        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
+        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+        Access-Control-Allow-Headers "*"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "3600"
+    }
+
+    @options method OPTIONS
+    respond @options 204
+
+    reverse_proxy localhost:8005
+
+    log {
         output file /var/log/caddy/redis.log
         format json
         level info
@@ -95,7 +95,7 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: adminer    (8003)
+# Service: adminer    (8006)
 # ------------------------------
 adminer.local.dev {
     
@@ -111,7 +111,7 @@ adminer.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8003
+    reverse_proxy localhost:8006
 
     log {
         output file /var/log/caddy/adminer.log
