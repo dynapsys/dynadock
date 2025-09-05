@@ -55,7 +55,7 @@ class EnvGenerator:
             env_vars[f"{upper_name}_PORT"] = str(port)
             env_vars[f"{upper_name}_HOST"] = "0.0.0.0"
             env_vars[f"{upper_name}_URL"] = f"{env_vars['DYNADOCK_PROTOCOL']}://{service_name}.{domain}"
-            env_vars[f"{upper_name}_INTERNAL_URL"] = f"http://{service_name}:{port}"
+            env_vars[f"{upper_name}_INTERNAL_URL"] = f"http://localhost:{port}"
 
             # Database-specific helpers
             if any(db in service_name.lower() for db in ("postgres", "mysql", "mongo", "redis")):

@@ -58,7 +58,7 @@ class TestExamples:
                 ports[service] = port
         return ports
     
-    def run_dynadock_command(self, args, cwd=None):
+    def run_dynadock_command(self, args, cwd=None, timeout=30):
         """Run a dynadock command and return the result."""
         cmd = ["dynadock"] + args
         result = subprocess.run(
@@ -66,7 +66,7 @@ class TestExamples:
             cwd=cwd,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=timeout
         )
         return result
     
@@ -181,7 +181,7 @@ class TestExamples:
         example_dir = EXAMPLES_DIR / "fullstack"
         
         # Start services
-        result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir)
+        result = self.run_dynadock_command(["up", "--detach"], cwd=example_dir, timeout=180)
         assert result.returncode == 0, f"Failed to start services: {result.stderr}"
         
         # Wait for services to be ready

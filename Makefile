@@ -13,6 +13,11 @@ YELLOW := \033[0;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
+.PHONY: free-port-80
+free-port-80: ## Find and kill the process blocking port 80
+	@echo "Attempting to free port 80..."
+	@./scripts/free_port.sh 80
+
 help: ## Show this help message
 	@echo "$(BLUE)DynaDock Development Commands$(NC)" && echo "" && \
 	grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \

@@ -17,9 +17,9 @@
 
 
 # ------------------------------
-# Service: api    (8004)
+# Service: frontend    (8004)
 # ------------------------------
-api.local.dev {
+frontend.local.dev {
     
 
     header {
@@ -33,21 +33,81 @@ api.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy api:8004 {
+    reverse_proxy frontend:8004 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
     }
 
     log {
-        output file /var/log/caddy/api.log
+        output file /var/log/caddy/frontend.log
         format json
         level info
     }
 }
 
 # ------------------------------
-# Service: redis    (8005)
+# Service: backend    (8005)
+# ------------------------------
+backend.local.dev {
+    
+
+    header {
+        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
+        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+        Access-Control-Allow-Headers "*"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "3600"
+    }
+
+    @options method OPTIONS
+    respond @options 204
+
+    reverse_proxy backend:8005 {
+        health_uri /health
+        health_interval 10s
+        health_timeout 5s
+    }
+
+    log {
+        output file /var/log/caddy/backend.log
+        format json
+        level info
+    }
+}
+
+# ------------------------------
+# Service: postgres    (8006)
+# ------------------------------
+postgres.local.dev {
+    
+
+    header {
+        Access-Control-Allow-Origin "http://localhost:3000, http://localhost:5173, https://*.local.dev"
+        Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+        Access-Control-Allow-Headers "*"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "3600"
+    }
+
+    @options method OPTIONS
+    respond @options 204
+
+    reverse_proxy postgres:8006 {
+        health_uri /health
+        health_interval 10s
+        health_timeout 5s
+    }
+
+    log {
+        output file /var/log/caddy/postgres.log
+        format json
+        level info
+    }
+}
+
+# ------------------------------
+# Service: redis    (8007)
 # ------------------------------
 redis.local.dev {
     
@@ -63,7 +123,7 @@ redis.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy redis:8005 {
+    reverse_proxy redis:8007 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
@@ -77,9 +137,9 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: caddy    (8006)
+# Service: mailhog    (8008)
 # ------------------------------
-caddy.local.dev {
+mailhog.local.dev {
     
 
     header {
@@ -93,14 +153,14 @@ caddy.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy caddy:8006 {
+    reverse_proxy mailhog:8008 {
         health_uri /health
         health_interval 10s
         health_timeout 5s
     }
 
     log {
-        output file /var/log/caddy/caddy.log
+        output file /var/log/caddy/mailhog.log
         format json
         level info
     }
