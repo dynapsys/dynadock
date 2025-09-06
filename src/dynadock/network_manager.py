@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Any
+from importlib.resources import files, as_file
 
 class NetworkManager:
     """Manage virtual network interfaces and IP allocation for services."""
@@ -13,9 +14,8 @@ class NetworkManager:
 
     def __init__(self, project_dir: Path):
         self.project_dir = project_dir
-        # Locate scripts/ relative to repository root (src/dynadock/ -> repo/)
-        repo_root = Path(__file__).resolve().parents[2]
-        self.manage_veth_script = (repo_root / "scripts" / "manage_veth.sh").resolve()
+        # Use packaged resource for manage_veth.sh to work from PyPI installs
+        self._manage_veth_resource = files("dynadock.resources").joinpath("manage_veth.sh")
         self.ip_map_json_path = self.project_dir / self._IP_MAP_JSON
         self.env_dir = self.project_dir / ".dynadock"
         self.env_dir.mkdir(exist_ok=True)
@@ -55,7 +55,9 @@ class NetworkManager:
             for service, ip in ip_map.items():
                 f.write(f"{service}={ip}\n")
 
-        subprocess.run(["sudo", str(self.manage_veth_script), "up", str(self.ip_map_env_path)], check=True)
+        # Access resource as a real file path and execute via bash
+        with as_file(self._manage_veth_resource) as script_path:
+            subprocess.run(["sudo", "bash", str(script_path), "up", str(self.ip_map_env_path)], check=True)
         return ip_map
 
     def teardown_interfaces(self, domain: str) -> None:
@@ -64,6 +66,7 @@ class NetworkManager:
         if not self.ip_map_env_path.exists() and not ip_map:
             return
 
-        subprocess.run(["sudo", str(self.manage_veth_script), "down", str(self.ip_map_env_path)], check=True)
+        with as_file(self._manage_veth_resource) as script_path:
+            subprocess.run(["sudo", "bash", str(script_path), "down", str(self.ip_map_env_path)], check=True)
         
         self.ip_map_env_path.unlink(missing_ok=True)

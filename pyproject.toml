@@ -1,8 +1,8 @@
 [project]
 name = "dynadock"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Dynamic Docker Compose orchestrator with automatic port allocation and TLS"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 authors = [
     {name = "Tom Sapletta", email = "info@softreck.dev"}
@@ -58,6 +58,17 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 path = "src/dynadock/__init__.py"
+
+[tool.hatch.build]
+include = [
+  "src/dynadock/resources/*",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dynadock"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/dynadock/resources/manage_veth.sh" = "dynadock/resources/manage_veth.sh"
 
 [tool.uv]
 # Development extras that `make dev` will install
