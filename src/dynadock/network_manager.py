@@ -56,8 +56,12 @@ class NetworkManager:
                 f.write(f"{service}={ip}\n")
 
         # Access resource as a real file path and execute via bash
-        with as_file(self._manage_veth_resource) as script_path:
-            subprocess.run(["sudo", "bash", str(script_path), "up", str(self.ip_map_env_path)], check=True)
+        try:
+            with as_file(self._manage_veth_resource) as script_path:
+                subprocess.run(["sudo", "bash", str(script_path), "up", str(self.ip_map_env_path)], check=True)
+        except subprocess.CalledProcessError as e:
+            # If script fails, return empty dict to signal fallback to hosts mode
+            return {}
         return ip_map
 
     def teardown_interfaces(self, domain: str) -> None:

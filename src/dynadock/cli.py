@@ -271,23 +271,32 @@ def up(  # noqa: D401
         allocated_ports = docker_manager.allocate_ports(services, start_port)
 
         progress.update(task, advance=1, description=f"Setting up virtual network for domain '{domain}'…")
-        try:
-            allocated_ips = network_manager.setup_interfaces(services, domain)
-            # Start local DNS resolver for *.domain -> service IPs
-            console.print("[dim]Starting local DNS resolver (dnsmasq)…[/dim]")
-            dns_ok = True
+        dns_ok = True
+        allocated_ips = {}
+        
+        if not manage_hosts:
+            # Only set up virtual network if not using hosts-only mode
             try:
-                dns_manager.start_dns(allocated_ips)
-                console.print("[green]✓ Local DNS ready[/green]")
-            except Exception as dns_err:  # noqa: BLE001
+                allocated_ips = network_manager.setup_interfaces(services, domain)
+                if not allocated_ips:  # Script failed, fall back to hosts mode
+                    console.print("[yellow]Virtual network setup failed, falling back to /etc/hosts mode[/yellow]")
+                    dns_ok = False
+                else:
+                    # Start local DNS resolver for *.domain -> service IPs
+                    console.print("[dim]Starting local DNS resolver (dnsmasq)…[/dim]")
+                    try:
+                        dns_manager.start_dns(allocated_ips)
+                        console.print("[green]✓ Local DNS ready[/green]")
+                    except Exception as dns_err:  # noqa: BLE001
+                        dns_ok = False
+                        console.print(f"[yellow]⚠ Local DNS could not be started: {dns_err}[/yellow]")
+                        console.print("[yellow]Falling back to /etc/hosts (requires sudo)…[/yellow]")
+            except Exception as e:
+                console.print(f"[yellow]Network setup error: {e}, falling back to /etc/hosts mode[/yellow]")
                 dns_ok = False
-                console.print(f"[yellow]⚠ Local DNS could not be started: {dns_err}[/yellow]")
-                console.print("[yellow]Falling back to /etc/hosts (requires sudo) if enabled…[/yellow]")
-        except subprocess.CalledProcessError as e:
-            console.print(f"\n[red]Error setting up virtual network interfaces: {e}[/red]")
-            console.print(f"[red]Stderr: {e.stderr.decode() if e.stderr else 'N/A'}[/red]")
-            console.print("[yellow]Hint: This command requires 'sudo' and the 'ip' command-line tool.[/yellow]")
-            raise click.Abort()
+        else:
+            console.print("[yellow]Using /etc/hosts mode (--manage-hosts specified)[/yellow]")
+            dns_ok = False
 
         progress.update(task, advance=1, description="Generating environment variables…")
         env_vars = env_generator.generate(
@@ -303,7 +312,9 @@ def up(  # noqa: D401
         if use_hosts:
             console.print("[yellow]Applying /etc/hosts fallback entries (requires sudo)…[/yellow]")
             try:
-                hosts_manager.apply(allocated_ips, domain)
+                # If no virtual IPs allocated (--manage-hosts mode), use localhost for all services
+                hosts_ips = allocated_ips if allocated_ips else {service: "127.0.0.1" for service in services}
+                hosts_manager.apply(hosts_ips, domain)
                 console.print("[green]✓ /etc/hosts updated[/green]")
             except Exception as he:  # noqa: BLE001
                 console.print(f"[red]Failed to update /etc/hosts: {he}[/red]")

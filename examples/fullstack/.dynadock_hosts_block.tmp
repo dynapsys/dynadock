@@ -1,0 +1,7 @@
+# BEGIN DYNADOCK HOSTS
+127.0.0.1	backend.local.dev
+127.0.0.1	frontend.local.dev
+127.0.0.1	mailhog.local.dev
+127.0.0.1	postgres.local.dev
+127.0.0.1	redis.local.dev
+# END DYNADOCK HOSTS

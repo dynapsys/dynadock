@@ -77,4 +77,4 @@ case "$COMMAND" in
         echo "Usage: $0 {up|down} <path_to_ip_map_file>" >&2
         exit 1
         ;;
-fi
+esac
