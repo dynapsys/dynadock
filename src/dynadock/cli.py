@@ -14,7 +14,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from .docker_manager import DockerManager
 from .env_generator import EnvGenerator
 from .caddy_config import CaddyConfig
+from .network_manager import NetworkManager
 from .utils import find_compose_file
+from dotenv import dotenv_values
 
 __all__ = ["cli"]
 
@@ -55,50 +57,27 @@ def verify_domain_access(allocated_ports: Dict[str, int], domain: str, enable_tl
     """Verify that services are accessible via their configured domains."""
     protocol = "https" if enable_tls else "http"
     
-    # Check if /etc/hosts has entries for the domains
-    hosts_configured = False
-    try:
-        with open("/etc/hosts", "r") as f:
-            hosts_content = f.read()
-            if domain in hosts_content:
-                hosts_configured = True
-    except:
-        pass
+    console.print("[dim]Checking service accessibility...[/dim]")
     
-    if not hosts_configured:
-        console.print(f"[yellow]⚠ Warning: No entries found for *.{domain} in /etc/hosts[/yellow]")
-        console.print(f"[yellow]  You need to add these entries to /etc/hosts to access services by domain:[/yellow]\n")
-    
-    # Test each service
-    all_accessible = True
     for service, port in allocated_ports.items():
         service_domain = f"{service}.{domain}"
-        
-        # Test localhost access (should always work)
-        localhost_url = f"http://localhost:{port}"
-        localhost_ok = test_url_with_curl(localhost_url, service, "localhost")
-        
-        # Test domain access
         domain_url = f"{protocol}://{service_domain}"
-        domain_ok = test_url_with_curl(domain_url, service, "domain")
         
-        if not domain_ok:
-            all_accessible = False
-            if not hosts_configured:
-                console.print(f"[dim]  127.0.0.1 {service_domain}[/dim]")
+        # Test domain access first, as it's the intended method
+        test_url_with_curl(domain_url, service, "domain")
+        
+        # Also test localhost access as a fallback
+        localhost_url = f"http://localhost:{port}"
+        test_url_with_curl(localhost_url, service, "localhost")
     
-    if not hosts_configured and not all_accessible:
-        console.print("\n[yellow]After adding these entries, services will be accessible via their domains.[/yellow]")
-        console.print("[dim]You can also access services directly via localhost:[port][/dim]\n")
+    console.print("\n[dim]Verification complete.[/dim]")
 
 def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
     """Test if a URL is accessible using curl."""
     try:
-        # Wait a bit for services to be ready
         if access_type == "localhost":
             time.sleep(1)
         
-        # Use curl with timeout and ignore SSL certificate errors for self-signed certs
         cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", "--connect-timeout", "3", "-m", "5", url]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
         
@@ -114,11 +93,9 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
                 if access_type == "localhost":
                     console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{url.split(':')[-1]} returned HTTP {http_code}[/yellow]")
                 elif access_type == "domain":
-                    # Domain might not be resolvable - this is expected
                     return False
         else:
             if access_type == "domain":
-                # Don't show error for domain access if it's expected to fail
                 return False
             else:
                 console.print(f"  [red]✗[/red] {service}: [red]{url} is not accessible (curl exit code: {result.returncode})[/red]")
@@ -201,15 +178,25 @@ def up(  # noqa: D401
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     env_generator = EnvGenerator(env_file)
     caddy_config = CaddyConfig(project_dir)
+    network_manager = NetworkManager(project_dir)
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
-        task = progress.add_task("Initializing…", total=6)
+        task = progress.add_task("Initializing…", total=7)
 
         progress.update(task, advance=1, description="Parsing docker-compose file…")
         services = docker_manager.parse_compose()
 
         progress.update(task, advance=1, description="Allocating ports…")
         allocated_ports = docker_manager.allocate_ports(services, start_port)
+
+        progress.update(task, advance=1, description="Setting up virtual network…")
+        try:
+            allocated_ips = network_manager.setup_interfaces(services, domain)
+        except subprocess.CalledProcessError as e:
+            console.print(f"\n[red]Error setting up virtual network interfaces: {e}[/red]")
+            console.print(f"[red]Stderr: {e.stderr.decode() if e.stderr else 'N/A'}[/red]")
+            console.print("[yellow]Hint: This command requires 'sudo' and the 'ip' command-line tool.[/yellow]")
+            raise click.Abort()
 
         progress.update(task, advance=1, description="Generating environment variables…")
         env_vars = env_generator.generate(
@@ -230,15 +217,15 @@ def up(  # noqa: D401
         except RuntimeError as e:
             console.print(f"[red]Error starting services: {e}[/red]")
             caddy_config.stop_caddy()
+            network_manager.teardown_interfaces(domain)
             raise click.Abort()
         
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
-        caddy_config.generate(services, allocated_ports, domain, enable_tls, list(cors_origins))
+        caddy_config.generate(services, allocated_ports, domain, enable_tls, list(cors_origins), allocated_ips)
         caddy_config.reload_caddy()
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
     
-    # Verify domain accessibility
     console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
     console.print("[dim]Testing with curl...[/dim]\n")
     verify_domain_access(allocated_ports, domain, enable_tls)
@@ -253,6 +240,7 @@ def up(  # noqa: D401
         except KeyboardInterrupt:
             console.print("\n[dim]Stopping services...[/dim]")
             docker_manager.down()
+            network_manager.teardown_interfaces(domain)
             console.print("\n[green]✓ All services stopped.[/green]")
 
 @cli.command()
@@ -268,17 +256,33 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
 
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     caddy_config = CaddyConfig(project_dir)
+    network_manager = NetworkManager(project_dir)
 
     if prune:
         remove_volumes = True
         remove_images = True
 
+    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
+    domain = env_values.get("DYNADOCK_DOMAIN", "local.dev")
+
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
-        task = progress.add_task("Stopping services…", total=3)
+        task = progress.add_task("Stopping services…", total=4)
         progress.update(task, advance=1, description="Stopping application containers…")
         docker_manager.down(remove_volumes=remove_volumes, remove_images=remove_images)
         progress.update(task, advance=1, description="Stopping Caddy reverse-proxy…")
         caddy_config.stop_caddy()
+        progress.update(task, advance=1, description="Tearing down virtual network…")
+        try:
+            network_manager.teardown_interfaces(domain)
+        except subprocess.CalledProcessError as e:
+            console.print(f"\n[bold yellow]Warning: Could not tear down virtual network interfaces.[/bold yellow]")
+            console.print(f"[yellow]  Command: {' '.join(e.cmd)}[/yellow]")
+            console.print(f"[yellow]  Exit Code: {e.returncode}[/yellow]")
+            console.print(f"[yellow]  Stderr: {e.stderr.decode().strip() if e.stderr else 'N/A'}[/yellow]")
+            console.print("[dim]  This may happen if the 'up' command failed prematurely. Manual cleanup may be required.[/dim]")
+        except FileNotFoundError:
+            console.print(f"\n[bold red]Error: 'manage_veth.sh' script not found.[/bold red]")
+            console.print("[dim]  Please ensure the 'scripts' directory is in the project root.[/dim]")
         progress.update(task, advance=1, description="✓ Cleanup complete!")
 
     console.print("[green]All services have been stopped and removed.[/green]")

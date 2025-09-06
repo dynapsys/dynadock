@@ -75,7 +75,7 @@ backend.local.dev {
 }
 
 # ------------------------------
-# Service: postgres    (8002)
+# Service: postgres    (8006)
 # ------------------------------
 postgres.local.dev {
     
@@ -93,7 +93,7 @@ postgres.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8002
+    reverse_proxy localhost:8006
 
     log {
         output file /var/log/caddy/postgres.log
@@ -103,7 +103,7 @@ postgres.local.dev {
 }
 
 # ------------------------------
-# Service: redis    (8003)
+# Service: redis    (8007)
 # ------------------------------
 redis.local.dev {
     
@@ -121,7 +121,7 @@ redis.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8003
+    reverse_proxy localhost:8007
 
     log {
         output file /var/log/caddy/redis.log
@@ -131,7 +131,7 @@ redis.local.dev {
 }
 
 # ------------------------------
-# Service: mailhog    (8004)
+# Service: mailhog    (8008)
 # ------------------------------
 mailhog.local.dev {
     
@@ -149,7 +149,7 @@ mailhog.local.dev {
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:8004
+    reverse_proxy localhost:8008
 
     log {
         output file /var/log/caddy/mailhog.log

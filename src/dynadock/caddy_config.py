@@ -30,9 +30,9 @@ CADDYFILE_TEMPLATE = """
 }
 {% endif %}
 
-{% for service, port in services.items() %}
+{% for service, data in services.items() %}
 # ------------------------------
-# Service: {{ service }}    ({{ port }})
+# Service: {{ service }}    ({{ data.ip }}:{{ data.port }})
 # ------------------------------
 {{ service }}.{{ domain }} {
     {% if enable_tls %}
@@ -50,7 +50,7 @@ CADDYFILE_TEMPLATE = """
     @options method OPTIONS
     respond @options 204
 
-    reverse_proxy localhost:{{ port }}
+    reverse_proxy {{ data.ip }}:{{ data.port }}
 
     log {
         output file /var/log/caddy/{{ service }}.log
@@ -60,7 +60,6 @@ CADDYFILE_TEMPLATE = """
 }
 {% endfor %}
 """
-
 
 class CaddyConfig:
     """Generate *Caddyfile* and manage the Caddy container."""
@@ -80,13 +79,16 @@ class CaddyConfig:
         domain: str,
         enable_tls: bool,
         cors_origins: List[str],
+        ips: Dict[str, str],
     ) -> Path:
         """Render the full Caddyfile template."""
         template = Template(CADDYFILE_TEMPLATE)
+        service_data = {s: {"port": p, "ip": ips.get(s)} for s, p in ports.items()}
+
         caddyfile_content = template.render(
             domain=domain,
             enable_tls=enable_tls,
-            services=ports,
+            services=service_data,
             cors_origins=cors_origins or [
                 "http://localhost:3000",
                 "http://localhost:5173",
