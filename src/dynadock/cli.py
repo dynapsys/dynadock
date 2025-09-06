@@ -15,6 +15,8 @@ from .docker_manager import DockerManager
 from .env_generator import EnvGenerator
 from .caddy_config import CaddyConfig
 from .network_manager import NetworkManager
+from .dns_manager import DnsManager
+from .network_diagnostics import NetworkDiagnostics
 from .utils import find_compose_file
 from dotenv import dotenv_values
 
@@ -179,6 +181,7 @@ def up(  # noqa: D401
     env_generator = EnvGenerator(env_file)
     caddy_config = CaddyConfig(project_dir)
     network_manager = NetworkManager(project_dir)
+    dns_manager = DnsManager(project_dir, domain)
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Initializing…", total=7)
@@ -192,6 +195,8 @@ def up(  # noqa: D401
         progress.update(task, advance=1, description="Setting up virtual network…")
         try:
             allocated_ips = network_manager.setup_interfaces(services, domain)
+            # Start local DNS resolver for *.domain -> service IPs
+            dns_manager.start_dns(allocated_ips)
         except subprocess.CalledProcessError as e:
             console.print(f"\n[red]Error setting up virtual network interfaces: {e}[/red]")
             console.print(f"[red]Stderr: {e.stderr.decode() if e.stderr else 'N/A'}[/red]")
@@ -217,7 +222,10 @@ def up(  # noqa: D401
         except RuntimeError as e:
             console.print(f"[red]Error starting services: {e}[/red]")
             caddy_config.stop_caddy()
-            network_manager.teardown_interfaces(domain)
+            try:
+                dns_manager.stop_dns()
+            finally:
+                network_manager.teardown_interfaces(domain)
             raise click.Abort()
         
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
@@ -265,12 +273,19 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
     domain = env_values.get("DYNADOCK_DOMAIN", "local.dev")
 
+    dns_manager = DnsManager(project_dir, domain)
+
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
-        task = progress.add_task("Stopping services…", total=4)
+        task = progress.add_task("Stopping services…", total=5)
         progress.update(task, advance=1, description="Stopping application containers…")
         docker_manager.down(remove_volumes=remove_volumes, remove_images=remove_images)
         progress.update(task, advance=1, description="Stopping Caddy reverse-proxy…")
         caddy_config.stop_caddy()
+        progress.update(task, advance=1, description="Stopping local DNS resolver…")
+        try:
+            dns_manager.stop_dns()
+        except Exception:
+            console.print("[yellow]Warning: Could not stop local DNS resolver.[/yellow]")
         progress.update(task, advance=1, description="Tearing down virtual network…")
         try:
             network_manager.teardown_interfaces(domain)
@@ -343,3 +358,33 @@ def _exec(ctx: click.Context, service: str, command: str) -> None:  # noqa: D401
     project_dir = ctx.obj["project_dir"]
     docker_manager = DockerManager(compose_file, project_dir)
     docker_manager.exec(service, command)
+
+
+@cli.command(name="net-diagnose")
+@click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
+@click.pass_context
+def net_diagnose(ctx: click.Context, domain: str) -> None:
+    """Diagnose Dynadock virtual networking and DNS setup."""
+    project_dir: Path = ctx.obj["project_dir"]
+    env_file: str = ctx.obj["env_file"]
+    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
+    domain = env_values.get("DYNADOCK_DOMAIN", domain)
+
+    diag = NetworkDiagnostics(project_dir, domain)
+    report = diag.diagnose()
+    console.print(report)
+
+
+@cli.command(name="net-repair")
+@click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
+@click.pass_context
+def net_repair(ctx: click.Context, domain: str) -> None:
+    """Attempt to auto-repair Dynadock virtual networking and DNS."""
+    project_dir: Path = ctx.obj["project_dir"]
+    env_file: str = ctx.obj["env_file"]
+    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
+    domain = env_values.get("DYNADOCK_DOMAIN", domain)
+
+    diag = NetworkDiagnostics(project_dir, domain)
+    actions = diag.repair()
+    console.print(actions)

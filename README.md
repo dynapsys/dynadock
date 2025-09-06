@@ -331,3 +331,90 @@ Projekt jest **w pełni kompletny** i gotowy do:
 - 🤝 Przyjmowania kontrybucji
 - 📦 Publikacji na PyPI
 
+
+## 🌐 Wirtualne interfejsy i domeny lokalne (bez konfliktów portów)
+
+Dynadock uruchamia dla każdego serwisu osobny, wirtualny interfejs sieciowy (dummy) o nazwie `dynadock-<service>` z przypisanym adresem IP z podsieci `172.20.0.0/16`. Caddy proxy kieruje ruch na te adresy IP, co pozwala na stabilne mapowanie domen `service.local.dev` bez konieczności publikowania portów każdego kontenera.
+
+Kluczowe elementy:
+
+- Interfejsy tworzone są skryptem `scripts/manage_veth.sh` (wymaga uprawnień administratora).
+- Plik mapowania IP jest zapisywany w katalogu projektu jako `.dynadock_ip_map.json`.
+- Caddy reverse_proxy używa par `IP:PORT` zamiast `localhost`.
+- Rozwiązywanie nazw domen wymaga lokalnego rozwiązania DNS lub (tymczasowo) wpisów w `/etc/hosts`.
+
+### Opcje rozwiązywania nazw domen
+
+- Opcja A – Automatyczne wpisy do `/etc/hosts` (obecnie domyślne)
+  - Dynadock dodaje/usuwa własny blok `DYNADOCK` w pliku `/etc/hosts` podczas `up`/`down`.
+  - Wymaga `sudo` i może poprosić o hasło podczas pierwszego uruchomienia.
+
+- Opcja B – Lokalny DNS (zalecane w kolejnej iteracji)
+  - Integracja z `dnsmasq`/`systemd-resolved` dla domeny `*.local.dev` bez modyfikacji `/etc/hosts`.
+  - Pozwala całkowicie uniknąć zmian w `/etc/hosts` i jest trwalsza dla wielu projektów.
+
+#### Konfiguracja lokalnego DNS (automatyczna podczas `dynadock up`)
+
+- Dynadock uruchamia kontener z `dnsmasq` nasłuchujący na `127.0.0.1:5353` i generuje mapę `address=/service.local.dev/<IP>` w pliku `.dynadock/dns/dynadock.conf`.
+- Następnie podejmuje próbę skonfigurowania `systemd-resolved` do routingu strefy `~<domena>` na `127.0.0.1` (interfejs `lo`):
+
+```bash
+sudo resolvectl dns lo 127.0.0.1
+sudo resolvectl domain lo ~local.dev
+sudo resolvectl flush-caches
+```
+
+Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równoważny mechanizm w NetworkManager lub innym resolverze, aby przekierować zapytania `*.local.dev` na `127.0.0.1:5353`.
+
+### Wymagania systemowe
+
+- Linux, `iproute2` (polecenie `ip`) i `sudo` do tworzenia interfejsów wirtualnych oraz modyfikacji `/etc/hosts`.
+- Docker oraz dostęp do demona Docker.
+
+### Uruchomienie przykładu: `examples/simple-web`
+
+```bash
+# 1) Uruchom serwisy (TLS opcjonalny). Użyj trybu modułu aby uniknąć problemów z PATH
+cd examples/simple-web
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli up --enable-tls
+
+# 2) Sprawdź, że Dynadock wygenerował .env.dynadock (z portami), np.:
+cat .env.dynadock
+
+# 3) Weryfikacja dostępu (domeny i localhost)
+curl -k https://web.local.dev   # domena (wymaga /etc/hosts lub lokalnego DNS)
+curl -k https://api.local.dev
+
+# Fallback (zawsze działa):
+curl http://localhost:$WEB_PORT
+curl http://localhost:$API_PORT
+
+# 4) Podgląd statusu i logów
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli ps
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli logs
+
+# 5) Sprzątanie
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli down --prune
+```
+
+Uwaga:
+
+- Pierwsze uruchomienie może poprosić o hasło `sudo` (tworzenie interfejsów i/lub aktualizacja `/etc/hosts`).
+- W środowiskach nieinteraktywnych modyfikacja `/etc/hosts` może się nie powieść – uruchom polecenia w swojej lokalnej konsoli.
+- Jeśli nie chcesz modyfikować `/etc/hosts`, uruchom najpierw przez localhost:port, a w kolejnym kroku skonfigurujemy lokalny DNS (`dnsmasq`).
+
+### Narzędzia diagnostyki i naprawy (Analyzer & Repair Toolbox)
+
+Dynadock dostarcza narzędzia do diagnozowania i automatycznej naprawy problemów z lokalną siecią wirtualną i DNS:
+
+```bash
+# Diagnoza (sprawdza interfejsy dynadock-*, kontener DNS, systemd-resolved, getent, curl)
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-diagnose -d local.dev
+
+# Próba automatycznej naprawy (ustawia stub domenę w systemd-resolved, restartuje DNS, odtwarza interfejsy)
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-repair -d local.dev
+```
+
+Jeżeli korzystasz z dystrybucji bez `systemd-resolved`, narzędzia wyświetlą wskazówki jak ręcznie skierować domenę `~local.dev` do `127.0.0.1`.
+
