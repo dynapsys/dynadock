@@ -26,7 +26,7 @@ CADDYFILE_TEMPLATE = """
 
 {% if enable_tls %}
 :443 {
-    tls internal
+    tls /etc/caddy/certs/_wildcard.local.dev+2.pem /etc/caddy/certs/_wildcard.local.dev+2-key.pem
 }
 {% endif %}
 
@@ -36,7 +36,7 @@ CADDYFILE_TEMPLATE = """
 # ------------------------------
 {{ service }}.{{ domain }} {
     {% if enable_tls %}
-    tls internal
+    tls /etc/caddy/certs/_wildcard.local.dev+2.pem /etc/caddy/certs/_wildcard.local.dev+2-key.pem
     {% endif %}
 
     header {
@@ -127,6 +127,10 @@ class CaddyConfig:
 
         self.stop_caddy()  # Ensure any stopped containers are removed
 
+        # Get the project root to find certs directory
+        project_root = self.project_dir.parent.parent if "examples" in str(self.project_dir) else self.project_dir
+        certs_dir = project_root / "certs"
+        
         cmd = [
             "docker", "run", "-d",
             "--name", self._CONTAINER_NAME,
@@ -136,6 +140,7 @@ class CaddyConfig:
             "-v", f"{self.caddy_dir}:/etc/caddy",
             "-v", f"{self.caddy_dir}/data:/data",
             "-v", f"{self.caddy_dir}/logs:/var/log/caddy",
+            "-v", f"{certs_dir}:/etc/caddy/certs:ro",
             "caddy:2-alpine",
             "caddy", "run", "--config", "/etc/caddy/Caddyfile",
         ]
