@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sys
+import subprocess
+import time
 from pathlib import Path
 from typing import Tuple, List, Dict, Any
 
@@ -48,6 +50,87 @@ def cli(ctx: click.Context, compose_file: str | None, env_file: str) -> None:
     ctx.obj["compose_file"] = str(compose_path)
     ctx.obj["env_file"] = env_file
     ctx.obj["project_dir"] = compose_path.parent
+
+def verify_domain_access(allocated_ports: Dict[str, int], domain: str, enable_tls: bool) -> None:
+    """Verify that services are accessible via their configured domains."""
+    protocol = "https" if enable_tls else "http"
+    
+    # Check if /etc/hosts has entries for the domains
+    hosts_configured = False
+    try:
+        with open("/etc/hosts", "r") as f:
+            hosts_content = f.read()
+            if domain in hosts_content:
+                hosts_configured = True
+    except:
+        pass
+    
+    if not hosts_configured:
+        console.print(f"[yellow]⚠ Warning: No entries found for *.{domain} in /etc/hosts[/yellow]")
+        console.print(f"[yellow]  You need to add these entries to /etc/hosts to access services by domain:[/yellow]\n")
+    
+    # Test each service
+    all_accessible = True
+    for service, port in allocated_ports.items():
+        service_domain = f"{service}.{domain}"
+        
+        # Test localhost access (should always work)
+        localhost_url = f"http://localhost:{port}"
+        localhost_ok = test_url_with_curl(localhost_url, service, "localhost")
+        
+        # Test domain access
+        domain_url = f"{protocol}://{service_domain}"
+        domain_ok = test_url_with_curl(domain_url, service, "domain")
+        
+        if not domain_ok:
+            all_accessible = False
+            if not hosts_configured:
+                console.print(f"[dim]  127.0.0.1 {service_domain}[/dim]")
+    
+    if not hosts_configured and not all_accessible:
+        console.print("\n[yellow]After adding these entries, services will be accessible via their domains.[/yellow]")
+        console.print("[dim]You can also access services directly via localhost:[port][/dim]\n")
+
+def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
+    """Test if a URL is accessible using curl."""
+    try:
+        # Wait a bit for services to be ready
+        if access_type == "localhost":
+            time.sleep(1)
+        
+        # Use curl with timeout and ignore SSL certificate errors for self-signed certs
+        cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", "--connect-timeout", "3", "-m", "5", url]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
+        
+        if result.returncode == 0:
+            http_code = result.stdout.strip()
+            if http_code and http_code != "000" and int(http_code) < 500:
+                if access_type == "localhost":
+                    console.print(f"  [green]✓[/green] {service}: [green]localhost:{url.split(':')[-1]} is accessible (HTTP {http_code})[/green]")
+                else:
+                    console.print(f"  [green]✓[/green] {service}: [green]{url} is accessible (HTTP {http_code})[/green]")
+                return True
+            else:
+                if access_type == "localhost":
+                    console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{url.split(':')[-1]} returned HTTP {http_code}[/yellow]")
+                elif access_type == "domain":
+                    # Domain might not be resolvable - this is expected
+                    return False
+        else:
+            if access_type == "domain":
+                # Don't show error for domain access if it's expected to fail
+                return False
+            else:
+                console.print(f"  [red]✗[/red] {service}: [red]{url} is not accessible (curl exit code: {result.returncode})[/red]")
+        return False
+    except subprocess.TimeoutExpired:
+        if access_type == "localhost":
+            console.print(f"  [red]✗[/red] {service}: [red]{url} timed out[/red]")
+        return False
+    except Exception as e:
+        if access_type == "localhost":
+            console.print(f"  [red]✗[/red] {service}: [red]Failed to test {url}: {e}[/red]")
+        return False
 
 def _display_running_services(
     allocated_ports: Dict[str, int],
@@ -154,6 +237,11 @@ def up(  # noqa: D401
         caddy_config.reload_caddy()
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
+    
+    # Verify domain accessibility
+    console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
+    console.print("[dim]Testing with curl...[/dim]\n")
+    verify_domain_access(allocated_ports, domain, enable_tls)
     
     status_by_service = docker_manager.ps()
     _display_running_services(allocated_ports, domain, enable_tls, status_by_service)
