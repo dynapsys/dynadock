@@ -396,6 +396,28 @@ PYTHONPATH=$(git rev-parse --show-toplevel)/src \
   python -m dynadock.cli up --enable-tls --auto-fix
 ```
 
+### Doctor (diagnoza i automatyczne naprawy)
+
+Komenda `doctor` łączy preflight oraz diagnostykę sieci (`net-diagnose`) i opcjonalnie wykonuje automatyczne naprawy (`--auto-fix`).
+
+- Sprawdza wymagane binaria, dostęp do Dockera i zajętość portów 53/80/443.
+- Weryfikuje konfigurację wirtualnej sieci i lokalnego DNS dla domeny (np. `*.local.dev`).
+- Z `--auto-fix` usuwa ewentualne stare kontenery `dynadock-*` i czyści cache DNS (`resolvectl flush-caches`).
+
+Przykład:
+
+```bash
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli doctor
+
+# Z automatyczną naprawą
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli doctor --auto-fix
+
+# Jeśli zainstalowano skrypt wejściowy:
+dynadock doctor --auto-fix
+```
+
 ### Wymagania systemowe
 
 - Linux, `iproute2` (polecenie `ip`) i `sudo` do tworzenia interfejsów wirtualnych oraz modyfikacji `/etc/hosts`.

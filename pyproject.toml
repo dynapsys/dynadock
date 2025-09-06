@@ -7,6 +7,30 @@ requires-python = ">=3.10"
 authors = [
     {name = "Tom Sapletta", email = "info@softreck.dev"}
 ]
+license = { file = "LICENSE" }
+keywords = [
+    "docker",
+    "compose",
+    "orchestrator",
+    "caddy",
+    "tls",
+    "reverse-proxy",
+    "development",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+]
 
 # Runtime dependencies
 dependencies = [
@@ -18,6 +42,12 @@ dependencies = [
     "psutil>=5.9.0",
     "jinja2>=3.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/dynapsys/dynadock"
+Repository = "https://github.com/dynapsys/dynadock"
+Issues = "https://github.com/dynapsys/dynadock/issues"
+Changelog = "https://github.com/dynapsys/dynadock/releases"
 
 [project.scripts]
 dynadock = "dynadock.cli:cli"

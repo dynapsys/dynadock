@@ -1,5 +1,5 @@
 # DynaDock Makefile
-.PHONY: help install dev test test-unit test-integration test-examples test-watch lint format docs docs-serve clean docker-test security release pre-commit coverage-report benchmark check-deps update-deps free-port-80 example-simple example-api example-fullstack example-clean dynadock-up dynadock-down dynadock-logs dynadock-health
+.PHONY: help install dev test test-unit test-integration test-examples test-watch lint format docs docs-serve clean docker-test security release pre-commit coverage-report benchmark check-deps update-deps free-port-80 example-simple example-api example-fullstack example-clean dynadock-up dynadock-down dynadock-logs dynadock-health build-dist check-dist publish publish-testpypi
 
 PYTHON := python3
 UV := uv
@@ -31,8 +31,8 @@ install: ## Install runtime dependencies only
 
 dev: ## Install development dependencies
 	@echo "$(YELLOW)Setting up development environment...$(NC)"
-	$(UV) pip install -e ".[dev]"
-	$(UV) pip install pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests
+	$(UV) pip install -e .
+	$(UV) pip install pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests twine
 	@chmod +x scripts/test_runner.sh
 	@echo "$(GREEN)✓ Development environment ready$(NC)"
 
@@ -104,6 +104,28 @@ release: ## Build and publish a release
 	uv build
 	docker build -t $(PROJECT_NAME):$(VERSION) -t $(PROJECT_NAME):latest .
 	@echo "$(GREEN)✓ Release artifacts built$(NC)"
+
+# ---------------------------
+# PyPI publishing helpers
+# ---------------------------
+
+build-dist: ## Build sdist and wheel into dist/
+	uv build
+
+check-dist: ## Check built distributions with twine
+	$(UV) run twine check dist/*
+
+publish: ## Upload package to PyPI (requires PYPI_TOKEN env var)
+	@test -n "$(PYPI_TOKEN)" || (echo "PYPI_TOKEN is required (create on PyPI)" && exit 1)
+	uv build
+	$(UV) run twine check dist/*
+	$(UV) run twine upload -u __token__ -p $(PYPI_TOKEN) dist/*
+
+publish-testpypi: ## Upload package to TestPyPI (requires TESTPYPI_TOKEN env var)
+	@test -n "$(TESTPYPI_TOKEN)" || (echo "TESTPYPI_TOKEN is required (create on TestPyPI)" && exit 1)
+	uv build
+	$(UV) run twine check dist/*
+	$(UV) run twine upload -r testpypi -u __token__ -p $(TESTPYPI_TOKEN) dist/*
 
 pre-commit: format lint test ## Run all checks before committing
 	@echo "$(GREEN)✓ Ready to commit!$(NC)"
