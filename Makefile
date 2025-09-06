@@ -84,8 +84,8 @@ clean: ## Clean build, cache and temporary files
 	# Attempt to remove .dynadock. Some subpaths (caddy/*) may be root-owned; ignore errors.
 	rm -rf .dynadock 2>/dev/null || true
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete
-	@$(MAKE) example-clean
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@$(MAKE) example-clean 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(NC)"
 
 clean-caddy: ## Remove Caddy data that may require sudo
@@ -120,11 +120,6 @@ check-dist: ## Check built distributions with twine
 	$(UV) run --with twine twine check dist/*
 
 
-install:
-	$(PIP) install -e .[dev]
-	@echo "🛠️ Repairing docs and validating CLI commands..."
-	$(PY) scripts/repair_docs.py --apply --report repair_docs_report.md
-	$(PY) scripts/test_commands_robust.py
 
 build:
 	$(PY) -m build
@@ -132,36 +127,36 @@ build:
 test-e2e:
 	@echo "Using PY=$(PY)"
 	@echo "LIBVIRT_DEFAULT_URI=$(LIBVIRT_DEFAULT_URI)"
-	@echo "DOCKVIRT_TEST_IMAGE=$(DOCKVIRT_TEST_IMAGE)"
-	@echo "DOCKVIRT_TEST_OS_VARIANT=$(DOCKVIRT_TEST_OS_VARIANT)"
+	@echo "dynadock_TEST_IMAGE=$(dynadock_TEST_IMAGE)"
+	@echo "dynadock_TEST_OS_VARIANT=$(dynadock_TEST_OS_VARIANT)"
 	$(PY) -m pytest -v tests/test_e2e.py
 
 # Versioning
 version-show:
-	@$(PY) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+	@awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py
 
 version-patch:
-	@current_version=$$($(PY) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"); \
+	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
 	IFS='.' read -r major minor patch <<< "$$current_version"; \
 	new_version="$$major.$$minor.$$((patch + 1))"; \
 	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/version = \"$$current_version\"/version = \"$$new_version\"/" pyproject.toml; \
+	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
 	echo "✅ Version updated to $$new_version"
 
 version-minor:
-	@current_version=$$($(PY) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"); \
+	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
 	IFS='.' read -r major minor patch <<< "$$current_version"; \
 	new_version="$$major.$$((minor + 1)).0"; \
 	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/version = \"$$current_version\"/version = \"$$new_version\"/" pyproject.toml; \
+	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
 	echo "✅ Version updated to $$new_version"
 
 version-major:
-	@current_version=$$($(PY) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"); \
+	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
 	IFS='.' read -r major minor patch <<< "$$current_version"; \
 	new_version="$$((major + 1)).0.0"; \
 	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/version = \"$$current_version\"/version = \"$$new_version\"/" pyproject.toml; \
+	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
 	echo "✅ Version updated to $$new_version"
 
 # Development tools
@@ -169,18 +164,6 @@ dev-setup: install
 	@echo "🔧 Setting up the development environment..."
 	$(PIP) install flake8 black isort
 	@echo "✅ Development environment ready"
-
-lint:
-	@echo "🔍 Linting the code..."
-	$(PY) -m flake8 dockvirt/ --max-line-length=88 --ignore=E203,W503
-	$(PY) -m black --check dockvirt/
-	$(PY) -m isort --check-only dockvirt/
-
-format:
-	@echo "🎨 Formatting the code..."
-	$(PY) -m black dockvirt/
-	$(PY) -m isort dockvirt/
-	@echo "✅ Code formatted"
 
 # Publishing with automatic versioning
 publish: clean version-patch repair-docs build
@@ -191,16 +174,14 @@ publish: clean version-patch repair-docs build
 	echo "✅ Version $$new_version published to PyPI"
 
 publish-testpypi: ## Upload package to TestPyPI (requires TESTPYPI_TOKEN env var)
-	@test -n "$(TESTPYPI_TOKEN)" || (echo "TESTPYPI_TOKEN is required (create on TestPyPI)" && exit 1)
 	uv build
 	$(UV) run --with twine twine check dist/*
-	$(UV) run --with twine twine upload -r testpypi -u __token__ -p $(TESTPYPI_TOKEN) dist/*
+	$(UV) run --with twine twine upload -r testpypi dist/*
 
-publish-pypi: ## Upload package to PyPI (requires PYPI_TOKEN env var)
-	@test -n "$(PYPI_TOKEN)" || (echo "PYPI_TOKEN is required (create on PyPI)" && exit 1)
+publish-pypi: version-patch ## Upload package to PyPI (requires PYPI_TOKEN env var)
 	uv build
 	$(UV) run --with twine twine check dist/*
-	$(UV) run --with twine twine upload -u __token__ -p $(PYPI_TOKEN) dist/*
+	$(UV) run --with twine twine upload dist/*
 
 pre-commit: format lint test ## Run all checks before committing
 	@echo "$(GREEN)✓ Ready to commit!$(NC)"
