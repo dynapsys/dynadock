@@ -38,7 +38,12 @@ dev: ## Install development dependencies
 
 test: ## Run all tests with coverage
 	@echo "$(YELLOW)Running tests...$(NC)"
-	$(UV) run pytest tests/ -v --cov=src/dynadock --cov-report=term-missing --cov-report=html
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run pytest tests/ -v --cov=src/dynadock --cov-report=term-missing --cov-report=html; \
+	else \
+		python3 -c 'import sys; import importlib.util; sys.exit(0 if importlib.util.find_spec("pytest") else 1)' || pip3 install -q pytest pytest-cov requests pytest-timeout; \
+		python3 -m pytest tests/ -v --cov=src/dynadock --cov-report=term-missing --cov-report=html; \
+	fi
 	@$(MAKE) test-examples
 	@echo "$(GREEN)✓ All tests complete$(NC)"
 

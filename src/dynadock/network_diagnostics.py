@@ -20,6 +20,15 @@ def _run(cmd: List[str]) -> Tuple[int, str, str]:
         return 127, "", f"command not found: {' '.join(cmd)}"
 
 
+def _port_in_use(port: int, proto: str = "tcp") -> bool:
+    flags = "-ltnp" if proto == "tcp" else "-lunp"
+    rc, out, _ = _run(["ss", flags])
+    if rc == 0 and str(port) in out:
+        return True
+    rc2, out2, _ = _run(["lsof", f"-i:{port}"])
+    return rc2 == 0 and bool(out2.strip())
+
+
 class NetworkDiagnostics:
     """Diagnose and attempt repair of Dynadock virtual networking and DNS."""
 
@@ -59,7 +68,7 @@ class NetworkDiagnostics:
         else:
             lines.append(f"- Virtual interfaces: [yellow]cannot check[/yellow] ({err or 'ip not available'})")
 
-        # 3) DNS container
+        # 3) DNS container and Caddy container
         try:
             container = self.client.containers.get("dynadock-dns")
             lines.append(f"- DNS container: {container.status}")
@@ -67,6 +76,14 @@ class NetworkDiagnostics:
             lines.append("- DNS container: [red]not found[/red]")
         except Exception as e:  # noqa: BLE001
             lines.append(f"- DNS container: [yellow]error[/yellow] ({e})")
+
+        try:
+            caddy = self.client.containers.get("dynadock-caddy")
+            lines.append(f"- Caddy container: {caddy.status}")
+        except docker.errors.NotFound:
+            lines.append("- Caddy container: [red]not found[/red]")
+        except Exception as e:  # noqa: BLE001
+            lines.append(f"- Caddy container: [yellow]error[/yellow] ({e})")
 
         # 4) systemd-resolved stub domain
         rc, out, err = _run(["resolvectl", "status", "lo"])
@@ -77,7 +94,15 @@ class NetworkDiagnostics:
         else:
             lines.append("- systemd-resolved: [yellow]not available[/yellow] (non-systemd or command missing)")
 
-        # 5) Name resolution check
+        # 5) Critical port bindings
+        p53 = _port_in_use(53, "udp") or _port_in_use(53, "tcp")
+        p80 = _port_in_use(80, "tcp")
+        p443 = _port_in_use(443, "tcp")
+        lines.append(f"- Port 53 (DNS): {'IN USE' if p53 else 'free'}")
+        lines.append(f"- Port 80 (HTTP): {'IN USE' if p80 else 'free'}")
+        lines.append(f"- Port 443 (HTTPS): {'IN USE' if p443 else 'free'}")
+
+        # 6) Name resolution check
         test_host = None
         if ip_map:
             test_host = f"{sorted(ip_map.keys())[0]}.{self.domain}"
@@ -89,7 +114,7 @@ class NetworkDiagnostics:
         else:
             lines.append("- Skipping getent check: no IP map")
 
-        # 6) HTTP check via curl (domain)
+        # 7) HTTP check via curl (domain)
         if test_host:
             rc, out, err = _run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "-k", f"https://{test_host}"])
             if rc == 0 and out and out != "000":

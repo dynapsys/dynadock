@@ -6,6 +6,7 @@ Tests that example applications start correctly and respond to requests.
 
 import os
 import sys
+import shutil
 import time
 import subprocess
 import requests
@@ -17,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
+PROJECT_ROOT = EXAMPLES_DIR.parent
 TIMEOUT = 120  # seconds to wait for services to start
 
 
@@ -59,16 +61,34 @@ class TestExamples:
         return ports
     
     def run_dynadock_command(self, args, cwd=None, timeout=30):
-        """Run a dynadock command and return the result."""
-        cmd = ["dynadock"] + args
+        """Run a dynadock command and return the result.
+
+        Falls back to module execution if the dynadock executable is not found.
+        """
+        if shutil.which("dynadock") is not None:
+            cmd = ["dynadock"] + args
+            env = None
+        else:
+            env = os.environ.copy()
+            env["PYTHONPATH"] = f"{PROJECT_ROOT}/src:" + env.get("PYTHONPATH", "")
+            cmd = [sys.executable, "-m", "dynadock.cli"] + args
         result = subprocess.run(
             cmd,
             cwd=cwd,
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
+            env=env,
         )
         return result
+
+    @pytest.fixture(scope="module", autouse=True)
+    def _skip_if_no_passwordless_sudo(self, request):
+        """Skip all example tests if passwordless sudo is not available."""
+        try:
+            subprocess.run(["sudo", "-n", "true"], check=True, capture_output=True)
+        except Exception:
+            pytest.skip("Passwordless sudo required for virtual interfaces/DNS tests")
     
     @pytest.mark.timeout(180)
     def test_simple_web_example(self):

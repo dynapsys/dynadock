@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List, Optional
 
 import docker
@@ -68,6 +69,20 @@ class DockerManager:  # pylint: disable=too-many-public-methods
         self.env_file = env_file
         self.client = docker.from_env()  # heavy import but only used on demand
         self.project_name = self._get_project_name()
+        # Determine compose command (docker-compose or docker compose)
+        if shutil.which("docker-compose"):
+            self._compose_base = ["docker-compose"]
+        elif shutil.which("docker"):
+            # Verify that docker compose exists (plugin)
+            try:
+                subprocess.run(["docker", "compose", "version"], check=True, capture_output=True)
+                self._compose_base = ["docker", "compose"]
+            except Exception:
+                # Fallback to docker-compose name (will fail later with clearer error from preflight)
+                self._compose_base = ["docker-compose"]
+        else:
+            self._compose_base = ["docker-compose"]
+        print(f"[dynadock] Using compose command: {' '.join(self._compose_base)}")
 
     # ------------------------------------------------------------------
     # Internals
@@ -104,7 +119,7 @@ class DockerManager:  # pylint: disable=too-many-public-methods
     # Compose wrappers -------------------------------------------------------
     def _compose_cmd(self, *args: str) -> List[str]:
         cmd = [
-            "docker-compose",
+            *self._compose_base,
             "-f",
             self.compose_file,
             "-p",

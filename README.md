@@ -345,17 +345,17 @@ Kluczowe elementy:
 
 ### Opcje rozwiązywania nazw domen
 
-- Opcja A – Automatyczne wpisy do `/etc/hosts` (obecnie domyślne)
-  - Dynadock dodaje/usuwa własny blok `DYNADOCK` w pliku `/etc/hosts` podczas `up`/`down`.
-  - Wymaga `sudo` i może poprosić o hasło podczas pierwszego uruchomienia.
-
-- Opcja B – Lokalny DNS (zalecane w kolejnej iteracji)
+- Domyślne – Lokalny DNS (dnsmasq + systemd-resolved)
   - Integracja z `dnsmasq`/`systemd-resolved` dla domeny `*.local.dev` bez modyfikacji `/etc/hosts`.
   - Pozwala całkowicie uniknąć zmian w `/etc/hosts` i jest trwalsza dla wielu projektów.
 
+- Alternatywa – Automatyczne wpisy do `/etc/hosts` (opcjonalnie)
+  - Jeśli nie możesz uruchomić lokalnego DNS, możesz dodać wpisy do `/etc/hosts` ręcznie lub skryptem.
+  - Wymaga uprawnień administratora (`sudo`).
+
 #### Konfiguracja lokalnego DNS (automatyczna podczas `dynadock up`)
 
-- Dynadock uruchamia kontener z `dnsmasq` nasłuchujący na `127.0.0.1:5353` i generuje mapę `address=/service.local.dev/<IP>` w pliku `.dynadock/dns/dynadock.conf`.
+- Dynadock uruchamia kontener z `dnsmasq` nasłuchujący na `127.0.0.1:53` i generuje mapę `address=/service.local.dev/<IP>` w pliku `.dynadock/dns/dynadock.conf`.
 - Następnie podejmuje próbę skonfigurowania `systemd-resolved` do routingu strefy `~<domena>` na `127.0.0.1` (interfejs `lo`):
 
 ```bash
@@ -364,7 +364,37 @@ sudo resolvectl domain lo ~local.dev
 sudo resolvectl flush-caches
 ```
 
-Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równoważny mechanizm w NetworkManager lub innym resolverze, aby przekierować zapytania `*.local.dev` na `127.0.0.1:5353`.
+Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równoważny mechanizm w NetworkManager lub innym resolverze, aby przekierować zapytania `*.local.dev` na `127.0.0.1:53`.
+
+#### Fallback: /etc/hosts
+
+Jeśli nie możesz użyć lokalnego DNS, możesz skorzystać z wpisów w `/etc/hosts`:
+
+```bash
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli up --manage-hosts
+```
+
+Dynadock doda/usuń własny blok między znacznikami `# BEGIN DYNADOCK HOSTS` i `# END DYNADOCK HOSTS`. Aby posprzątać:
+
+```bash
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli down --remove-hosts
+```
+
+### Preflight (automatyczna diagnostyka przed startem)
+
+Dynadock wykonuje serię testów środowiska (binariów, dostępu do Dockera, portów 53/80/443, obecności `resolvectl`).
+
+- Włączenie automatycznych napraw: `--auto-fix` (czyści cache DNS, usuwa ewentualne stare kontenery `dynadock-*`).
+- Komunikaty ostrzegawcze nie przerywają działania, ale są wyświetlane dla przejrzystości.
+
+Przykład:
+
+```bash
+PYTHONPATH=$(git rev-parse --show-toplevel)/src \
+  python -m dynadock.cli up --enable-tls --auto-fix
+```
 
 ### Wymagania systemowe
 
@@ -377,8 +407,8 @@ Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równowa
 # 1) Uruchom serwisy (TLS opcjonalny). Użyj trybu modułu aby uniknąć problemów z PATH
 cd examples/simple-web
 PYTHONPATH=$(git rev-parse --show-toplevel)/src \
-  python -m dynadock.cli up --enable-tls
-
+  python -m dynadock.cli up --enable-tls --auto-fix
+```
 # 2) Sprawdź, że Dynadock wygenerował .env.dynadock (z portami), np.:
 cat .env.dynadock
 
@@ -418,3 +448,15 @@ PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-repai
 
 Jeżeli korzystasz z dystrybucji bez `systemd-resolved`, narzędzia wyświetlą wskazówki jak ręcznie skierować domenę `~local.dev` do `127.0.0.1`.
 
+### Rozwiązywanie problemów (Troubleshooting)
+
+- Brak resolvectl/systemd-resolved
+  - Użyj `--manage-hosts` jako alternatywy.
+
+- Port 53/80/443 zajęty
+  - Zwolnij porty lub zatrzymaj proces (np. `sudo lsof -i :53`, `make free-port-80`).
+
+- Domeny *.local.dev nie rozwiązują się
+  - `python -m dynadock.cli net-diagnose -d local.dev` pokaże brak stub domeny lub konflikt portu 53.
+  - Spróbuj `python -m dynadock.cli net-repair -d local.dev`.
+  - Ewentualnie przełącz się na `--manage-hosts`.
