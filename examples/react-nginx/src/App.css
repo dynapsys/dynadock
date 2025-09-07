@@ -1,0 +1,148 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: calc(10px + 2vmin);
+}
+
+.App-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.5rem;
+}
+
+.App-header p {
+  margin: 0 0 30px 0;
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.status-section, .info-section, .endpoints-section {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #3a3f47;
+  border-radius: 10px;
+  max-width: 800px;
+  width: 90%;
+}
+
+.status-section h2, .info-section h2, .endpoints-section h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #61dafb;
+}
+
+.status-indicator {
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin: 15px 0;
+}
+
+.status-indicator.loading {
+  background-color: #ffd700;
+  color: #333;
+}
+
+.status-indicator.connected {
+  background-color: #4caf50;
+  color: white;
+}
+
+.status-indicator.error {
+  background-color: #f44336;
+  color: white;
+}
+
+.api-data {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.api-data pre {
+  background-color: #1e1e1e;
+  padding: 15px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  color: #61dafb;
+}
+
+.error-message {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.error-message code {
+  background-color: #1e1e1e;
+  padding: 10px;
+  border-radius: 5px;
+  display: block;
+  font-size: 0.9rem;
+  color: #ff6b6b;
+}
+
+.info-section p, .info-section ul {
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.info-section code {
+  background-color: #1e1e1e;
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: #61dafb;
+  font-size: 0.9rem;
+}
+
+.info-section ul {
+  padding-left: 20px;
+}
+
+.info-section li {
+  margin: 8px 0;
+}
+
+.endpoints-section ul {
+  list-style: none;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.endpoints-section li {
+  padding: 10px;
+  margin: 10px 0;
+  background-color: #2d3142;
+  border-radius: 5px;
+  text-align: left;
+}
+
+.endpoints-section strong {
+  color: #61dafb;
+}
+
+@media (max-width: 768px) {
+  .App-header {
+    font-size: calc(8px + 2vmin);
+    padding: 15px;
+  }
+  
+  .status-section, .info-section, .endpoints-section {
+    width: 95%;
+    padding: 15px;
+  }
+  
+  .App-header h1 {
+    font-size: 2rem;
+  }
+}

@@ -1,74 +1,114 @@
-# dynadock
+# DynaDock
 
-Stworzę dla Ciebie kompletne narzędzie CLI `dynadock`, które rozwiązuje wszystkie wymienione problemy z Docker Compose. To będzie pełnoprawna biblioteka Python z dynamiczną alokacją portów, automatycznym TLS przez Caddy i lokalnymi subdomenami.Stworzyłem dla Ciebie kompletne narzędzie **DynaDock** - inteligentny orchestrator Docker Compose, który rozwiązuje wszystkie wymienione problemy. 
+**Dynamic Docker Compose orchestrator with automatic port allocation, TLS, and local subdomain routing.**
 
-## 🎯 Kluczowe cechy rozwiązania:
+DynaDock is an intelligent Docker Compose orchestrator that eliminates common development pain points by providing dynamic port allocation, automatic HTTPS through Caddy reverse proxy, and seamless local subdomain routing.
 
-### 1. **Dynamiczna alokacja portów**
-- Automatyczne skanowanie zajętych portów
-- Inteligentne przydzielanie wolnych portów każdemu serwisowi
-- Brak konfliktów portowych
+## ✨ Key Features
 
-### 2. **Automatyczny TLS/HTTPS**
-- Caddy jako reverse proxy z automatycznymi certyfikatami
-- Wsparcie dla Let's Encrypt na produkcji
-- Self-signed certificates dla developmentu
+### 🔌 **Dynamic Port Allocation**
+- Automatic scanning of occupied ports
+- Intelligent allocation of free ports to services
+- Zero port conflicts across projects
 
-### 3. **Lokalne subdomeny**
-- Każdy serwis dostępny pod `service.local.dev`
-- Automatyczne routing przez Caddy
-- API Gateway pod `api.local.dev`
+### 🔒 **Automatic TLS/HTTPS**
+- Caddy reverse proxy with automatic certificates
+- Let's Encrypt support for production
+- Trusted local certificates for development using mkcert
 
-### 4. **Zero-config deployment**
-- Generowanie `.env.dynadock` ze wszystkimi zmiennymi
-- Automatyczna konfiguracja CORS
-- Gotowe do produkcji z jedną komendą
+### 🌐 **Local Subdomain Routing**
+- Each service accessible via `service.local.dev`
+- Automatic routing configuration
+- API Gateway at `api.local.dev`
 
-## 🚀 Jak używać:
+### ⚡ **Zero-Config Deployment**
+- Automatic `.env.dynadock` generation
+- Built-in CORS configuration  
+- Production-ready with single command
+
+## 🚀 Quick Start
 
 ```bash
-# Instalacja
-uv tool install dynadock
+# Install DynaDock
+pip install dynadock
 
-# W katalogu z docker-compose.yaml
+# Navigate to your project directory with docker-compose.yaml
+cd your-project/
+
+# Start services with HTTPS
 dynadock up --enable-tls
 
-# Twoje serwisy będą dostępne pod:
+# Your services will be available at:
 # https://api.local.dev
-# https://frontend.local.dev
+# https://frontend.local.dev  
 # https://postgres.local.dev
 ```
 
-## 📦 Co zawiera narzędzie:
+## 📦 Core Components
 
-- **CLI z komendami**: `up`, `down`, `ps`, `logs`, `exec`
-- **Port Allocator**: inteligentne zarządzanie portami
-- **Env Generator**: automatyczne generowanie zmiennych środowiskowych
-- **Caddy Config**: dynamiczna konfiguracja reverse proxy
-- **Docker Manager**: orchestracja kontenerów
+- **CLI Interface**: Complete command set (`up`, `down`, `ps`, `logs`, `exec`)
+- **Port Allocator**: Intelligent port management and conflict resolution
+- **Environment Generator**: Automatic environment variable configuration
+- **Caddy Manager**: Dynamic reverse proxy configuration
+- **Docker Manager**: Container orchestration and lifecycle management
+- **Network Diagnostics**: Comprehensive health checking and monitoring
 
-## 💡 Przykład użycia:
+## 💡 Usage Examples
 
+### Standard Development Setup
 ```bash
-# Development z TLS
+# Basic development setup
+dynadock up --domain app.local
+
+# Development with TLS
 dynadock up --domain app.local --enable-tls
 
-# Produkcja
+# Production deployment
 dynadock up --domain myapp.com --enable-tls --cors-origins https://app.myapp.com
-
-# Sprawdzenie statusu
-dynadock ps
-
-# Zatrzymanie
-dynadock down -v
 ```
 
-Narzędzie automatycznie:
-- Znajdzie wolne porty (8000-9999)
-- Wygeneruje bezpieczne hasła dla baz danych
-- Skonfiguruje CORS dla API
-- Utworzy certyfikaty TLS
-- Ustawi load balancing i health checks
+### 🌐 LAN-Visible Networking (NEW!)
+Access your services from any device on your network without DNS configuration:
+
+```bash
+# Test LAN networking capabilities
+sudo dynadock lan-test
+
+# Start services with LAN-visible IPs (requires sudo)
+sudo dynadock up --lan-visible
+
+# Specify network interface (optional)
+sudo dynadock up --lan-visible --network-interface eth0
+```
+
+**Benefits of LAN-Visible Mode:**
+- 📱 Access from phones, tablets, other computers instantly
+- 🚫 No DNS setup or /etc/hosts configuration needed
+- ⚡ Direct IP access - works immediately
+- 🔒 Secure - only accessible within your local network
+
+### Service Management
+```bash
+# Check service status
+dynadock ps
+
+# View logs
+dynadock logs
+
+# Stop services
+dynadock down -v
+
+# Clean up including LAN IPs
+dynadock down --remove-hosts
+```
+
+DynaDock automatically:
+- Finds free ports (8000-9999)  
+- Generates secure database passwords
+- Configures CORS for APIs
+- Creates TLS certificates
+- Sets up load balancing and health checks
+- **Creates LAN-visible virtual IPs (with --lan-visible)**
 
 Stworzę kompletną dokumentację, testy oraz Makefile dla projektu DynaDock.Stworzyłem kompletną dokumentację, testy oraz Makefile dla projektu DynaDock. Oto co zawiera pakiet:
 

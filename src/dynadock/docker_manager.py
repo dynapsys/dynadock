@@ -18,6 +18,7 @@ import docker
 import yaml
 
 from .port_allocator import PortAllocator
+from .exceptions import DynaDockDockerError, DynaDockTimeoutError, ErrorHandler
 
 logger = logging.getLogger('dynadock.docker_manager')
 
@@ -41,6 +42,8 @@ def _run(
     if cwd:
         logger.debug(f"📁 Working directory: {cwd}")
     
+    error_handler = ErrorHandler(logger)
+    
     try:
         result = subprocess.run(
             cmd,
@@ -52,50 +55,91 @@ def _run(
         )
         logger.debug(f"✅ Command completed successfully: {cmd[0]}")
         return result
-    except subprocess.CalledProcessError as e:
-        logger.error(f"❌ Command failed: {' '.join(cmd)}")
-        logger.error(f"💥 Error: {e.stderr}")
-        raise
+    except Exception as e:
+        error_handler.handle_subprocess_error(cmd, e, "Docker command execution")
 
 
 class DockerManager:  # pylint: disable=too-many-public-methods
     """Orchestrate *docker-compose* lifecycle on behalf of DynaDock."""
 
     def __init__(self, compose_file: str | Path, project_dir: Path | None = None, env_file: str | None = None):
-        self.compose_file = str(compose_file)
-        self.project_dir = Path(project_dir or Path(compose_file).parent).resolve()
-        self.env_file = env_file
-        self.client = docker.from_env()  # heavy import but only used on demand
+        self.error_handler = ErrorHandler(logger)
         
-        logger.info(f"🐳 DockerManager initialized")
-        logger.debug(f"📄 Compose file: {self.compose_file}")
-        logger.debug(f"📁 Project directory: {self.project_dir}")
-        logger.debug(f"🔧 Env file: {self.env_file}")
-        self.project_name = self._get_project_name()
-        # Determine compose command (docker-compose or docker compose)
-        if shutil.which("docker-compose"):
-            self._compose_base = ["docker-compose"]
-        elif shutil.which("docker"):
-            # Verify that docker compose exists (plugin)
-            try:
-                subprocess.run(["docker", "compose", "version"], check=True, capture_output=True)
-                self._compose_base = ["docker", "compose"]
-            except Exception:
-                # Fallback to docker-compose name (will fail later with clearer error from preflight)
-                self._compose_base = ["docker-compose"]
-        else:
-            self._compose_base = ["docker-compose"]
-        print(f"[dynadock] Using compose command: {' '.join(self._compose_base)}")
+        try:
+            self.compose_file = str(compose_file)
+            self.project_dir = Path(project_dir or Path(compose_file).parent).resolve()
+            self.env_file = env_file
+            
+            # Validate compose file exists
+            if not Path(self.compose_file).exists():
+                self.error_handler.log_and_raise(
+                    DynaDockDockerError,
+                    f"Docker Compose file not found: {self.compose_file}"
+                )
+            
+            self.client = docker.from_env()  # heavy import but only used on demand
+            
+            logger.info(f"🐳 DockerManager initialized")
+            logger.debug(f"📄 Compose file: {self.compose_file}")
+            logger.debug(f"📁 Project directory: {self.project_dir}")
+            logger.debug(f"🔧 Env file: {self.env_file}")
+            self.project_name = self._get_project_name()
+            
+            # Determine compose command (docker-compose or docker compose)
+            self._compose_base = self._detect_compose_command()
+            logger.info(f"🔧 Using compose command: {' '.join(self._compose_base)}")
+            
+        except Exception as e:
+            if not isinstance(e, DynaDockDockerError):
+                self.error_handler.log_and_raise(
+                    DynaDockDockerError,
+                    "Failed to initialize DockerManager",
+                    e
+                )
+            raise
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 
+    def _detect_compose_command(self) -> List[str]:
+        """Detect available docker-compose command."""
+        if shutil.which("docker-compose"):
+            return ["docker-compose"]
+        elif shutil.which("docker"):
+            # Verify that docker compose exists (plugin)
+            try:
+                subprocess.run(["docker", "compose", "version"], check=True, capture_output=True)
+                return ["docker", "compose"]
+            except Exception:
+                # Fallback to docker-compose name (will fail later with clearer error from preflight)
+                return ["docker-compose"]
+        else:
+            self.error_handler.log_and_raise(
+                DynaDockDockerError,
+                "Neither 'docker-compose' nor 'docker compose' command found. Please install Docker Compose."
+            )
+    
     def _get_project_name(self) -> str:
         """Derive a compose project name from the directory name."""
-        return (
-            self.project_dir.name.lower().replace("_", "").replace("-", "")
-        )[:50]  # compose limits name length
+        try:
+            project_name = (
+                self.project_dir.name.lower().replace("_", "").replace("-", "")
+            )[:50]  # compose limits name length
+            
+            if not project_name:
+                self.error_handler.log_and_raise(
+                    DynaDockDockerError,
+                    "Cannot derive project name from empty directory name"
+                )
+            
+            return project_name
+        except Exception as e:
+            self.error_handler.log_and_raise(
+                DynaDockDockerError,
+                "Failed to derive project name",
+                e
+            )
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -104,8 +148,26 @@ class DockerManager:  # pylint: disable=too-many-public-methods
     # Parsing ----------------------------------------------------------------
     def parse_compose(self) -> Dict[str, Any]:
         """Return the *services* mapping from the compose YAML."""
-        with open(self.compose_file, "r", encoding="utf-8") as fp:
-            compose_data = yaml.safe_load(fp)
+        try:
+            with open(self.compose_file, "r", encoding="utf-8") as fp:
+                compose_data = yaml.safe_load(fp)
+        except FileNotFoundError:
+            self.error_handler.log_and_raise(
+                DynaDockDockerError,
+                f"Compose file not found: {self.compose_file}"
+            )
+        except yaml.YAMLError as e:
+            self.error_handler.log_and_raise(
+                DynaDockDockerError,
+                f"Invalid YAML in compose file: {self.compose_file}",
+                e
+            )
+        except Exception as e:
+            self.error_handler.log_and_raise(
+                DynaDockDockerError,
+                f"Failed to parse compose file: {self.compose_file}",
+                e
+            )
         return compose_data.get("services", {})  # type: ignore[return-value]
 
     # Port allocation --------------------------------------------------------

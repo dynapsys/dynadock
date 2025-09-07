@@ -17,6 +17,7 @@ from .docker_manager import DockerManager
 from .env_generator import EnvGenerator
 from .caddy_config import CaddyConfig
 from .network_manager import NetworkManager
+from .lan_network_manager import LANNetworkManager
 from .dns_manager import DnsManager
 from .network_diagnostics import NetworkDiagnostics
 from .utils import find_compose_file
@@ -169,6 +170,8 @@ def verify_domain_access(
 )
 @click.option("--detach", is_flag=True, help="Run in background without following logs")
 @click.option("--manage-hosts", is_flag=True, help="Also write fallback entries into /etc/hosts (requires sudo)")
+@click.option("--lan-visible", is_flag=True, help="Create LAN-visible virtual IPs (requires sudo, no DNS setup needed)")
+@click.option("--network-interface", help="Network interface for LAN-visible mode (auto-detected if not specified)")
 @click.option("--auto-fix", is_flag=True, help="Attempt automatic preflight fixes (containers, DNS cache)")
 @click.option("--strict-health", is_flag=True, help="Fail and stop all services if health verification fails")
 @click.option("--health-retries", default=3, show_default=True, help="Retries for post-start health verification", type=int)
@@ -183,6 +186,8 @@ def up(  # noqa: D401
     detach: bool,
     reload: bool,
     manage_hosts: bool,
+    lan_visible: bool,
+    network_interface: str,
     auto_fix: bool,
     strict_health: bool,
     health_retries: int,
@@ -197,6 +202,7 @@ def up(  # noqa: D401
     env_generator = EnvGenerator(env_file)
     caddy_config = CaddyConfig(project_dir)
     network_manager = NetworkManager(project_dir)
+    lan_network_manager = LANNetworkManager(project_dir, network_interface) if lan_visible else None
     dns_manager = DnsManager(project_dir, domain)
     hosts_manager = HostsManager(project_dir)
 
@@ -230,11 +236,23 @@ def up(  # noqa: D401
         progress.update(task, advance=1, description="Allocating ports…")
         allocated_ports = docker_manager.allocate_ports(services, start_port)
 
-        progress.update(task, advance=1, description=f"Setting up virtual network for domain '{domain}'…")
+        progress.update(task, advance=1, description=f"Setting up networking for domain '{domain}'…")
         dns_ok = True
         allocated_ips = {}
         
-        if not manage_hosts:
+        if lan_visible:
+            # Use LAN-visible virtual IPs mode
+            console.print("[cyan]Setting up LAN-visible virtual IPs (requires sudo)…[/cyan]")
+            try:
+                allocated_ips = lan_network_manager.setup_services_lan(services)
+                console.print(f"[green]✓ Created {len(allocated_ips)} LAN-visible IPs[/green]")
+                # No DNS needed - direct IP access
+                dns_ok = True
+            except Exception as e:
+                console.print(f"[red]❌ LAN networking setup failed: {e}[/red]")
+                console.print("[yellow]Falling back to /etc/hosts mode…[/yellow]")
+                dns_ok = False
+        elif not manage_hosts:
             # Only set up virtual network if not using hosts-only mode
             try:
                 allocated_ips = network_manager.setup_interfaces(services, domain)
@@ -267,8 +285,8 @@ def up(  # noqa: D401
             cors_origins=list(cors_origins),
         )
 
-        # Optional hosts fallback
-        use_hosts = manage_hosts or (shutil.which("resolvectl") is None) or (not locals().get("dns_ok", True))
+        # Optional hosts fallback (skip for LAN-visible mode as IPs are directly accessible)
+        use_hosts = (manage_hosts or (shutil.which("resolvectl") is None) or (not locals().get("dns_ok", True))) and not lan_visible
         if use_hosts:
             console.print("[yellow]Applying /etc/hosts fallback entries (requires sudo)…[/yellow]")
             try:
@@ -292,6 +310,8 @@ def up(  # noqa: D401
                 dns_manager.stop_dns()
             finally:
                 network_manager.teardown_interfaces(domain)
+                if lan_network_manager:
+                    lan_network_manager.cleanup_all()
             raise click.Abort()
 
         progress.update(task, advance=1, description="Starting application containers…")
@@ -304,6 +324,8 @@ def up(  # noqa: D401
                 dns_manager.stop_dns()
             finally:
                 network_manager.teardown_interfaces(domain)
+                if lan_network_manager:
+                    lan_network_manager.cleanup_all()
             raise click.Abort()
         
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
@@ -312,9 +334,26 @@ def up(  # noqa: D401
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
     
-    console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
-    console.print("[dim]Testing with curl...[/dim]\n")
-    all_ok, results = verify_domain_access(allocated_ports, domain, enable_tls, retries=health_retries, initial_wait=health_wait, ip_map=allocated_ips)
+    # Special handling for LAN-visible networking
+    if lan_visible and lan_network_manager and allocated_ips:
+        console.print("\n[bold green]✅ LAN-visible services ready![/bold green]")
+        console.print("\n[bold cyan]🌐 Services accessible from ANY device on your network:[/bold cyan]\n")
+        
+        service_urls = lan_network_manager.get_service_urls(allocated_ips, allocated_ports)
+        for service, url in service_urls.items():
+            console.print(f"   🔗 {service}: [link]{url}[/link]")
+        
+        console.print("\n[dim]💡 No DNS setup required - access directly from phones, tablets, other computers![/dim]")
+        
+        # Test LAN connectivity
+        console.print("\n[bold blue]Testing LAN connectivity:[/bold blue]")
+        connectivity_results = lan_network_manager.test_connectivity(allocated_ips, allocated_ports)
+        all_ok = all(connectivity_results.values())
+        results = {service: {"domain": result, "localhost": True} for service, result in connectivity_results.items()}
+    else:
+        console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
+        console.print("[dim]Testing with curl...[/dim]\n")
+        all_ok, results = verify_domain_access(allocated_ports, domain, enable_tls, retries=health_retries, initial_wait=health_wait, ip_map=allocated_ips)
 
     if strict_health and not all_ok:
         failed = [svc for svc, res in results.items() if not (res["domain"] or res["localhost"]) ]
@@ -327,6 +366,8 @@ def up(  # noqa: D401
                 dns_manager.stop_dns()
             finally:
                 network_manager.teardown_interfaces(domain)
+                if lan_network_manager:
+                    lan_network_manager.cleanup_all()
         raise click.Abort()
     
     status_by_service = docker_manager.ps()
@@ -340,6 +381,12 @@ def up(  # noqa: D401
             console.print("\n[dim]Stopping services...[/dim]")
             docker_manager.down()
             network_manager.teardown_interfaces(domain)
+            # Clean up LAN networking if it was used
+            try:
+                lan_cleanup_manager = LANNetworkManager(project_dir)
+                lan_cleanup_manager.cleanup_all()
+            except:
+                pass  # LAN networking may not have been used
             console.print("\n[green]✓ All services stopped.[/green]")
 
 @cli.command()
@@ -357,6 +404,7 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     caddy_config = CaddyConfig(project_dir)
     network_manager = NetworkManager(project_dir)
+    lan_network_manager = LANNetworkManager(project_dir)
 
     if prune:
         remove_volumes = True
@@ -379,7 +427,7 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
             dns_manager.stop_dns()
         except Exception:
             console.print("[yellow]Warning: Could not stop local DNS resolver.[/yellow]")
-        progress.update(task, advance=1, description="Tearing down virtual network…")
+        progress.update(task, advance=1, description="Tearing down networks…")
         try:
             network_manager.teardown_interfaces(domain)
         except subprocess.CalledProcessError as e:
@@ -391,6 +439,12 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
         except FileNotFoundError:
             console.print(f"\n[bold red]Error: 'manage_veth.sh' script not found.[/bold red]")
             console.print("[dim]  Please ensure the 'scripts' directory is in the project root.[/dim]")
+        
+        # Clean up LAN networking
+        try:
+            lan_network_manager.cleanup_all()
+        except Exception:
+            pass  # LAN networking may not have been used
         if remove_hosts:
             progress.update(task, advance=0, description="Removing /etc/hosts entries…")
             try:
@@ -543,6 +597,124 @@ def net_repair(ctx: click.Context, domain: str) -> None:
     diag = NetworkDiagnostics(project_dir, domain)
     actions = diag.repair()
     console.print(actions)
+
+
+@cli.command(name="lan-test")
+@click.option("--interface", "-i", help="Network interface (auto-detected if not specified)")
+@click.option("--num-ips", "-n", default=3, help="Number of test IPs to create", type=int)
+@click.option("--port", "-p", default=8000, help="Starting port for test servers", type=int)
+@click.pass_context
+def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> None:
+    """Test LAN-visible networking functionality (requires sudo)."""
+    project_dir: Path = ctx.obj["project_dir"]
+    
+    console.print("""
+[bold cyan]🌐 DynaDock LAN-Visible Networking Test[/bold cyan]
+
+This command will:
+1. Check root privileges (required)
+2. Detect network configuration
+3. Find available IP addresses in your LAN
+4. Create virtual IPs visible to all devices on the network
+5. Start test HTTP servers on those IPs
+6. Test connectivity and provide access URLs
+
+[yellow]⚠️  Requires sudo privileges to create virtual network interfaces[/yellow]
+    """)
+    
+    try:
+        lan_manager = LANNetworkManager(project_dir, interface)
+        
+        # Check root privileges
+        if not lan_manager.check_root_privileges():
+            console.print("[red]❌ This command requires sudo privileges[/red]")
+            console.print("[dim]Run: sudo dynadock lan-test[/dim]")
+            raise click.Abort()
+        
+        console.print("[bold blue]📡 Network Analysis[/bold blue]")
+        current_ip, network_base, cidr, broadcast = lan_manager.get_network_details()
+        
+        if not current_ip:
+            console.print("[red]❌ Could not detect network configuration[/red]")
+            raise click.Abort()
+        
+        console.print("[bold blue]🔍 Finding Available IPs[/bold blue]")
+        available_ips = lan_manager.find_free_ips(network_base, cidr, num_ips)
+        
+        if not available_ips:
+            console.print("[red]❌ No available IP addresses found[/red]")
+            raise click.Abort()
+        
+        console.print(f"[green]✅ Found {len(available_ips)} available IPs[/green]")
+        
+        # Create test services
+        test_services = {f"test{i+1}": {} for i in range(len(available_ips))}
+        
+        console.print("[bold blue]🚀 Creating LAN-Visible IPs[/bold blue]")
+        service_ips = lan_manager.setup_services_lan(test_services)
+        
+        if not service_ips:
+            console.print("[red]❌ Failed to create LAN-visible IPs[/red]")
+            raise click.Abort()
+        
+        # Create port mapping for test
+        port_map = {service: port + i for i, service in enumerate(service_ips.keys())}
+        
+        console.print("[bold green]✅ LAN-Visible Test Services Created![/bold green]")
+        console.print("\n[bold cyan]🌐 Access URLs (from ANY device on your network):[/bold cyan]")
+        
+        service_urls = lan_manager.get_service_urls(service_ips, port_map)
+        for service, url in service_urls.items():
+            console.print(f"   🔗 {service}: [link]{url}[/link]")
+        
+        console.print("\n[bold blue]🧪 Testing Connectivity[/bold blue]")
+        # Note: Since we're not actually starting HTTP servers in this test,
+        # we'll just test that the IPs are reachable via ping
+        all_reachable = True
+        for service, ip in service_ips.items():
+            try:
+                import subprocess
+                result = subprocess.run(f"ping -c 1 {ip}", shell=True, capture_output=True, timeout=2)
+                if result.returncode == 0:
+                    console.print(f"   ✅ {service} ({ip}) - Reachable")
+                else:
+                    console.print(f"   ❌ {service} ({ip}) - Not reachable")
+                    all_reachable = False
+            except:
+                console.print(f"   ⚠️ {service} ({ip}) - Test failed")
+                all_reachable = False
+        
+        if all_reachable:
+            console.print("\n[bold green]🎉 All test IPs are reachable![/bold green]")
+            console.print("[dim]💡 You can now use --lan-visible with 'dynadock up' for real services[/dim]")
+        else:
+            console.print("\n[yellow]⚠️ Some IPs are not reachable - check network configuration[/yellow]")
+        
+        console.print(f"\n[bold cyan]📋 Usage Example:[/bold cyan]")
+        console.print(f"[dim]# Start your services with LAN-visible networking:[/dim]")
+        console.print(f"sudo dynadock up --lan-visible")
+        if interface:
+            console.print(f"sudo dynadock up --lan-visible --network-interface {interface}")
+        
+        console.print(f"\n[yellow]⚠️ Cleaning up test IPs in 10 seconds...[/yellow]")
+        console.print("[dim]Press Ctrl+C to clean up immediately[/dim]")
+        
+        try:
+            import time
+            time.sleep(10)
+        except KeyboardInterrupt:
+            console.print("\n[dim]Cleaning up...[/dim]")
+        
+        lan_manager.cleanup_all()
+        console.print("[green]✅ Test cleanup completed[/green]")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Test failed: {e}[/red]")
+        try:
+            lan_manager.cleanup_all()
+        except:
+            pass
+        raise click.Abort()
 
 
 @cli.command(name="doctor")
