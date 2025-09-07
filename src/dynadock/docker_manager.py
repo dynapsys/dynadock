@@ -12,11 +12,14 @@ import subprocess
 from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
+import logging
 
 import docker
 import yaml
 
 from .port_allocator import PortAllocator
+
+logger = logging.getLogger('dynadock.docker_manager')
 
 __all__ = ["DockerManager"]
 
@@ -30,34 +33,29 @@ _LOGGED_ENV_VARS = (
 def _run(
     cmd: List[str],
     *,
-    cwd: Path | None = None,
-    env: Dict[str, str] | None = None,
+    cwd: str | Path | None = None,
+    env: Dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
-    """Run a command and stream its output in real-time."""
-    print(f"[dynadock] Running: {' '.join(cmd)}", flush=True)
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        cwd=cwd,
-        env=env,
-    )
-
-    output = []
-    if process.stdout:
-        for line in iter(process.stdout.readline, ""):
-            print(line, end="", flush=True)
-            output.append(line)
-
-    process.wait()
-
-    return subprocess.CompletedProcess(
-        args=cmd,
-        returncode=process.returncode,
-        stdout="".join(output),
-        stderr=None,  # stderr is redirected to stdout
-    )
+    """Run a subprocess with some sensible defaults."""
+    logger.debug(f"🔨 Running command: {' '.join(cmd)}")
+    if cwd:
+        logger.debug(f"📁 Working directory: {cwd}")
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.debug(f"✅ Command completed successfully: {cmd[0]}")
+        return result
+    except subprocess.CalledProcessError as e:
+        logger.error(f"❌ Command failed: {' '.join(cmd)}")
+        logger.error(f"💥 Error: {e.stderr}")
+        raise
 
 
 class DockerManager:  # pylint: disable=too-many-public-methods
@@ -68,6 +66,11 @@ class DockerManager:  # pylint: disable=too-many-public-methods
         self.project_dir = Path(project_dir or Path(compose_file).parent).resolve()
         self.env_file = env_file
         self.client = docker.from_env()  # heavy import but only used on demand
+        
+        logger.info(f"🐳 DockerManager initialized")
+        logger.debug(f"📄 Compose file: {self.compose_file}")
+        logger.debug(f"📁 Project directory: {self.project_dir}")
+        logger.debug(f"🔧 Env file: {self.env_file}")
         self.project_name = self._get_project_name()
         # Determine compose command (docker-compose or docker compose)
         if shutil.which("docker-compose"):

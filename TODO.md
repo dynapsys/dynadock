@@ -1,6 +1,6 @@
-# DynaDock - Lista zadań i refactoring (2025/09/07 12:35)
+# DynaDock - Lista zadań i refactoring (2025-01-07 13:50)
 
-## 🔧 AKTUALNY PRIORYTET: Code Refactoring & Optimization
+## 🔧 AKTUALNY PRIORYTET: Enhanced Logging & Version 1.1.0
 
 ### 1. **✅ UKOŃCZONE REFACTORING:**
 - **Status:** ✅ ZREALIZOWANE
@@ -14,6 +14,24 @@
   - [x] `src/dynadock/cli.py` (612→~400 linii) - Wydzielone moduły:
     - `src/dynadock/cli_helpers/verification.py` - weryfikacja domen
     - `src/dynadock/cli_helpers/display.py` - funkcje wyświetlania
+
+### 2. **✅ ENHANCED LOGGING SYSTEM (NOWE w 1.1.0):**
+- **Status:** ✅ ZREALIZOWANE
+- **Dodane funkcjonalności:**
+  - [x] `--verbose/-v` flag w CLI dla szczegółowego debugowania
+  - [x] Centralized logging configuration z plikami logów w `.dynadock/dynadock.log`
+  - [x] Enhanced logging w wszystkich głównych komponentach:
+    - `cli.py` - CLI operations i domain verification
+    - `docker_manager.py` - Docker commands i container management
+    - `network_manager.py` - Network interface management
+    - `caddy_config.py` - Caddy configuration generation  
+    - `env_generator.py` - Environment variable generation
+    - `port_allocator.py` - Port allocation operations
+  - [x] Comprehensive testing scripts z verbose logging:
+    - `detailed_test_3_cases.py` - Full diagnostic suite
+    - `working_detailed_test.py` - Reliable test version
+    - `simple_network_test.py` - Basic connectivity tests
+    - `comprehensive_diagnostic_report.py` - JSON reporting
 
 ### 2. **🎯 HTTPS Status (Stabilny)**  
 - **Status:** ✅ DZIAŁAJĄCE

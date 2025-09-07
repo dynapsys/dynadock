@@ -115,8 +115,11 @@ def verify_domain_access(
         ok_local = False
         wait = max(0.1, initial_wait)
 
+        logger.info(f"🔍 Verifying service access: {service} on {service_domain}:{port}")
+        
         for attempt in range(retries + 1):
             if not ok_domain:
+                logger.debug(f"🌐 Testing domain URL: {domain_url} (attempt {attempt + 1})")
                 ok_domain = test_url_with_curl(domain_url, service, "domain")
             if not ok_local:
                 ok_local = test_url_with_curl(localhost_url, service, "localhost")

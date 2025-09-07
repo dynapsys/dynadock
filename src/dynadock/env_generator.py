@@ -11,6 +11,9 @@ from __future__ import annotations
 import secrets
 from pathlib import Path
 from typing import Dict, List, Any
+import logging
+
+logger = logging.getLogger('dynadock.env_generator')
 
 __all__ = ["EnvGenerator"]
 
@@ -25,6 +28,7 @@ class EnvGenerator:
 
     def __init__(self, env_file: str | Path = ".env.dynadock") -> None:
         self.env_file = Path(env_file)
+        logger.info(f"🔧 EnvGenerator initialized - target file: {self.env_file}")
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -40,6 +44,9 @@ class EnvGenerator:
         cors_origins: List[str],
     ) -> Dict[str, str]:
         """Return *env_vars* and write them to *env_file*."""
+        logger.info(f"🔧 Generating environment variables for {len(services)} services")
+        logger.debug(f"🌐 Domain: {domain}, TLS: {enable_tls}")
+        logger.debug(f"📊 Services: {list(services.keys())}")
 
         env_vars: Dict[str, str] = {
             "DYNADOCK_DOMAIN": domain,
@@ -51,6 +58,7 @@ class EnvGenerator:
         }
 
         for service_name, port in ports.items():
+            logger.debug(f"🔌 Configuring service: {service_name} on port {port}")
             upper_name = service_name.upper().replace("-", "_")
             env_vars[f"{upper_name}_PORT"] = str(port)
             env_vars[f"{upper_name}_HOST"] = "0.0.0.0"

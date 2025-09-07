@@ -166,11 +166,11 @@ dev-setup: install
 	@echo "✅ Development environment ready"
 
 # Publishing with automatic versioning
-publish: clean version-patch repair-docs build
+publish: clean version-patch build-dist check-dist
 	@echo "📦 Publishing package to PyPI..."
-	@new_version=$$($(PY) -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"); \
+	@new_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
 	echo "Publishing version $$new_version"; \
-	$(PY) -m twine upload dist/*; \
+	$(UV) run --with twine twine upload dist/*; \
 	echo "✅ Version $$new_version published to PyPI"
 
 publish-testpypi: ## Upload package to TestPyPI (requires TESTPYPI_TOKEN env var)

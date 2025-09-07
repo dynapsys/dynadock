@@ -5,6 +5,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Any
 from importlib.resources import files, as_file
+import logging
+
+logger = logging.getLogger('dynadock.network_manager')
 
 class NetworkManager:
     """Manage virtual network interfaces and IP allocation for services."""
@@ -20,6 +23,10 @@ class NetworkManager:
         self.env_dir = self.project_dir / ".dynadock"
         self.env_dir.mkdir(exist_ok=True)
         self.ip_map_env_path = self.env_dir / "ip_map.env"
+        
+        logger.info(f"🌐 NetworkManager initialized for project: {project_dir}")
+        logger.debug(f"📍 IP map file: {self.ip_map_json_path}")
+        logger.debug(f"📁 Environment directory: {self.env_dir}")
 
     def _load_ip_map(self) -> Dict[str, str]:
         """Load the service-to-IP mapping from file."""

@@ -7,8 +7,11 @@ from __future__ import annotations
 
 import socket
 from typing import Set
+import logging
 
 import psutil
+
+logger = logging.getLogger('dynadock.port_allocator')
 
 __all__ = [
     "PortAllocator",
@@ -27,6 +30,7 @@ class PortAllocator:
     """
 
     def __init__(self, start_port: int = 8000, end_port: int = 9999):
+        logger.info(f"🔌 PortAllocator initialized - range: {start_port}-{end_port}")
         if start_port < 1 or end_port > 65535:
             raise ValueError("Port range must be within 1-65535")
         if start_port >= end_port:
