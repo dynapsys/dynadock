@@ -85,8 +85,8 @@ class DiagnosticReport:
         
         test_cases = [
             ('http://localhost:8000', 'Localhost Direct HTTP'),
-            ('https://frontend.local.dev', 'Frontend Local Domain'),
-            ('https://mailhog.local.dev', 'MailHog Local Domain')
+            ('https://frontend.dynadock.lan', 'Frontend Local Domain'),
+            ('https://mailhog.dynadock.lan', 'MailHog Local Domain')
         ]
         
         network_results = {}
@@ -169,8 +169,8 @@ class DiagnosticReport:
         
         test_cases = [
             ('http://localhost:8000', 'Localhost Direct HTTP'),
-            ('https://frontend.local.dev', 'Frontend Local Domain'),
-            ('https://mailhog.local.dev', 'MailHog Local Domain')
+            ('https://frontend.dynadock.lan', 'Frontend Local Domain'),
+            ('https://mailhog.dynadock.lan', 'MailHog Local Domain')
         ]
         
         browser_results = {}
@@ -257,8 +257,8 @@ class DiagnosticReport:
             'http://localhost:8000',
             'http://localhost:8001', 
             'http://localhost:8025',
-            'https://frontend.local.dev',
-            'https://mailhog.local.dev'
+            'https://frontend.dynadock.lan',
+            'https://mailhog.dynadock.lan'
         ]
         
         service_results = {}

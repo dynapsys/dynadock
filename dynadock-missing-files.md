@@ -270,7 +270,7 @@ class TestCaddyConfig:
         config.generate(
             services={'api': {}},
             ports={'api': 8001},
-            domain='local.dev',
+            domain='dynadock.lan',
             enable_tls=False,
             cors_origins=[]
         )
@@ -1083,7 +1083,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 - Zero-configuration deployment
 - Automatic TLS/HTTPS with Caddy
-- Local subdomains (service.local.dev)
+- Local subdomains (service.dynadock.lan)
 - Dynamic port allocation to avoid conflicts
 - Automatic generation of database credentials
 - Support for PostgreSQL, MySQL, MongoDB, Redis
@@ -1164,7 +1164,7 @@ Start with DynaDock:
 dynadock up
 ```
 
-Your service is now available at `http://web.local.dev:8001`
+Your service is now available at `http://web.dynadock.lan:8001`
 
 ### 2. Multi-Service Application
 
@@ -1196,8 +1196,8 @@ dynadock up --enable-tls
 ```
 
 Services available at:
-- `https://frontend.local.dev`
-- `https://api.local.dev`
+- `https://frontend.dynadock.lan`
+- `https://api.dynadock.lan`
 - Database connection via generated DSN
 
 ### 3. Production Deployment
@@ -1273,7 +1273,7 @@ Example generated variables:
 ```env
 # Services
 API_PORT=8001
-API_URL=https://api.local.dev
+API_URL=https://api.dynadock.lan
 API_INTERNAL_URL=http://api:8001
 
 # Database
@@ -1292,9 +1292,9 @@ DYNADOCK_JWT_SECRET=auto_generated_jwt_secret
 
 ```bash
 # Add to /etc/hosts
-127.0.0.1 web.local.dev
-127.0.0.1 api.local.dev
-127.0.0.1 frontend.local.dev
+127.0.0.1 web.dynadock.lan
+127.0.0.1 api.dynadock.lan
+127.0.0.1 frontend.dynadock.lan
 ```
 
 ### Option 2: Use dnsmasq (Recommended)
@@ -1302,12 +1302,12 @@ DYNADOCK_JWT_SECRET=auto_generated_jwt_secret
 ```bash
 # macOS
 brew install dnsmasq
-echo "address=/.local.dev/127.0.0.1" >> /usr/local/etc/dnsmasq.conf
+echo "address=/.dynadock.lan/127.0.0.1" >> /usr/local/etc/dnsmasq.conf
 sudo brew services start dnsmasq
 
 # Linux
 sudo apt install dnsmasq
-echo "address=/.local.dev/127.0.0.1" | sudo tee -a /etc/dnsmasq.conf
+echo "address=/.dynadock.lan/127.0.0.1" | sudo tee -a /etc/dnsmasq.conf
 sudo systemctl restart dnsmasq
 ```
 
@@ -1342,7 +1342,7 @@ dynadock up --start-port 9000
 
 3. Verify domain resolution:
    ```bash
-   ping api.local.dev
+   ping api.dynadock.lan
    ```
 
 ### Permission Issues
@@ -1399,7 +1399,7 @@ Options:
 dynadock up [OPTIONS]
 
 Options:
-  -d, --domain TEXT        Base domain [default: local.dev]
+  -d, --domain TEXT        Base domain [default: dynadock.lan]
   -p, --start-port INT     Starting port for allocation [default: 8000]
   --enable-tls            Enable TLS/HTTPS via Caddy
   -c, --cors-origins TEXT  CORS allowed origins (multiple allowed)
@@ -1539,7 +1539,7 @@ health:
 # Deployment profiles
 profiles:
   development:
-    domain: local.dev
+    domain: dynadock.lan
     enable_tls: false
     cors:
       origins:

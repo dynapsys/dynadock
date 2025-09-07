@@ -182,7 +182,7 @@ async def run_integration_test():
         test_urls = [
             'http://localhost:8000',
             'https://localhost:443',
-            'https://frontend.local.dev'
+            'https://frontend.dynadock.lan'
         ]
         
         results = {}

@@ -180,7 +180,7 @@ After starting with DynaDock, services are accessible at:
 Examples:
 ```bash
 # Service named 'api' with default domain
-https://api.local.dev
+https://api.dynadock.lan
 
 # Service named 'frontend' with custom domain
 dynadock up --domain myapp.test
@@ -197,8 +197,8 @@ dynadock ps
 
 # Output:
 # SERVICE    STATUS    PORTS
-# api        running   3001 -> https://api.local.dev
-# frontend   running   3002 -> https://frontend.local.dev
+# api        running   3001 -> https://api.dynadock.lan
+# frontend   running   3002 -> https://frontend.dynadock.lan
 ```
 
 ### Health Checks
@@ -230,8 +230,8 @@ DynaDock automatically generates these variables in `.env.dynadock`:
 
 ```bash
 # Service URLs
-API_URL=https://api.local.dev
-FRONTEND_URL=https://frontend.local.dev
+API_URL=https://api.dynadock.lan
+FRONTEND_URL=https://frontend.dynadock.lan
 
 # Service Ports
 API_PORT=3001
@@ -310,8 +310,8 @@ services:
 When scaled, Caddy automatically load balances between instances:
 
 ```bash
-# Requests to https://api.local.dev are distributed across all instances
-curl https://api.local.dev/health
+# Requests to https://api.dynadock.lan are distributed across all instances
+curl https://api.dynadock.lan/health
 ```
 
 ## Best Practices
@@ -462,5 +462,5 @@ volumes:
 
 ```bash
 dynadock up --enable-tls
-# Access at: https://api.local.dev
+# Access at: https://api.dynadock.lan
 ```

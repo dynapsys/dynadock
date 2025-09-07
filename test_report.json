@@ -9,13 +9,13 @@
     "successful_tests": 2,
     "failed_tests": 3,
     "issues_found": [
-      "https://frontend.local.dev/: Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.local.dev/\nCall log:\n  - navigating to \"https://frontend.local.dev/\", waiting until \"domcontentloaded\"\n",
-      "https://mailhog.local.dev/: Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.local.dev/\nCall log:\n  - navigating to \"https://mailhog.local.dev/\", waiting until \"domcontentloaded\"\n",
+      "https://frontend.dynadock.lan/: Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.dynadock.lan/\nCall log:\n  - navigating to \"https://frontend.dynadock.lan/\", waiting until \"domcontentloaded\"\n",
+      "https://mailhog.dynadock.lan/: Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.dynadock.lan/\nCall log:\n  - navigating to \"https://mailhog.dynadock.lan/\", waiting until \"domcontentloaded\"\n",
       "https://localhost/health: Page.goto: net::ERR_CONNECTION_REFUSED at https://localhost/health\nCall log:\n  - navigating to \"https://localhost/health\", waiting until \"domcontentloaded\"\n"
     ],
     "network_issues": [
-      "https://frontend.local.dev/: TCP connection failed",
-      "https://mailhog.local.dev/: TCP connection failed",
+      "https://frontend.dynadock.lan/: TCP connection failed",
+      "https://mailhog.dynadock.lan/: TCP connection failed",
       "https://localhost/health: TCP connection failed"
     ]
   },
@@ -114,19 +114,19 @@
       ":::8000": "-"
     },
     "hosts_file": {
-      "9": "127.0.0.1frontend.local.dev",
-      "10": "127.0.0.1backend.local.dev",
-      "11": "127.0.0.1postgres.local.dev",
-      "12": "127.0.0.1redis.local.dev",
-      "13": "127.0.0.1mailhog.local.dev",
-      "15": "127.0.0.1 frontend.local.dev backend.local.dev postgres.local.dev redis.local.dev mailhog.local.dev",
-      "16": "127.0.0.1 frontend.local.dev backend.local.dev postgres.local.dev redis.local.dev mailhog.local.dev"
+      "9": "127.0.0.1frontend.dynadock.lan",
+      "10": "127.0.0.1backend.dynadock.lan",
+      "11": "127.0.0.1postgres.dynadock.lan",
+      "12": "127.0.0.1redis.dynadock.lan",
+      "13": "127.0.0.1mailhog.dynadock.lan",
+      "15": "127.0.0.1 frontend.dynadock.lan backend.dynadock.lan postgres.dynadock.lan redis.dynadock.lan mailhog.dynadock.lan",
+      "16": "127.0.0.1 frontend.dynadock.lan backend.dynadock.lan postgres.dynadock.lan redis.dynadock.lan mailhog.dynadock.lan"
     },
     "processes": []
   },
   "network_analysis": {
-    "https://frontend.local.dev/": {
-      "hostname": "frontend.local.dev",
+    "https://frontend.dynadock.lan/": {
+      "hostname": "frontend.dynadock.lan",
       "port": 443,
       "scheme": "https",
       "tcp_connect": false,
@@ -147,8 +147,8 @@
         "error": "[Errno 111] Connection refused"
       }
     },
-    "https://mailhog.local.dev/": {
-      "hostname": "mailhog.local.dev",
+    "https://mailhog.dynadock.lan/": {
+      "hostname": "mailhog.dynadock.lan",
       "port": 443,
       "scheme": "https",
       "tcp_connect": false,
@@ -233,13 +233,13 @@
     }
   },
   "browser_details": {
-    "https://frontend.local.dev/": {
+    "https://frontend.dynadock.lan/": {
       "success": false,
-      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.local.dev/\nCall log:\n  - navigating to \"https://frontend.local.dev/\", waiting until \"domcontentloaded\"\n",
-      "screenshot": "test_screenshots/frontend.local.dev___1757244074_exception.png",
+      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.dynadock.lan/\nCall log:\n  - navigating to \"https://frontend.dynadock.lan/\", waiting until \"domcontentloaded\"\n",
+      "screenshot": "test_screenshots/frontend.dynadock.lan___1757244074_exception.png",
       "network_requests": [
         {
-          "url": "https://frontend.local.dev/",
+          "url": "https://frontend.dynadock.lan/",
           "method": "GET",
           "headers": {
             "upgrade-insecure-requests": "1",
@@ -252,17 +252,17 @@
         }
       ],
       "errors": [
-        "Request failed: https://frontend.local.dev/ - net::ERR_CONNECTION_REFUSED"
+        "Request failed: https://frontend.dynadock.lan/ - net::ERR_CONNECTION_REFUSED"
       ],
       "ssl_errors": []
     },
-    "https://mailhog.local.dev/": {
+    "https://mailhog.dynadock.lan/": {
       "success": false,
-      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.local.dev/\nCall log:\n  - navigating to \"https://mailhog.local.dev/\", waiting until \"domcontentloaded\"\n",
-      "screenshot": "test_screenshots/mailhog.local.dev___1757244074_exception.png",
+      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.dynadock.lan/\nCall log:\n  - navigating to \"https://mailhog.dynadock.lan/\", waiting until \"domcontentloaded\"\n",
+      "screenshot": "test_screenshots/mailhog.dynadock.lan___1757244074_exception.png",
       "network_requests": [
         {
-          "url": "https://mailhog.local.dev/",
+          "url": "https://mailhog.dynadock.lan/",
           "method": "GET",
           "headers": {
             "upgrade-insecure-requests": "1",
@@ -275,7 +275,7 @@
         }
       ],
       "errors": [
-        "Request failed: https://mailhog.local.dev/ - net::ERR_CONNECTION_REFUSED"
+        "Request failed: https://mailhog.dynadock.lan/ - net::ERR_CONNECTION_REFUSED"
       ],
       "ssl_errors": []
     },
@@ -768,8 +768,8 @@
     "directory": "test_screenshots",
     "count": 5,
     "files": [
-      "frontend.local.dev___1757244074_exception.png",
-      "mailhog.local.dev___1757244074_exception.png",
+      "frontend.dynadock.lan___1757244074_exception.png",
+      "mailhog.dynadock.lan___1757244074_exception.png",
       "localhost__health_1757244074_exception.png",
       "localhost:8000__1757244075_success.png",
       "localhost:8025__1757244076_success.png"

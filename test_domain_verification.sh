@@ -33,23 +33,23 @@ if [ -f .env.dynadock ]; then
     curl -s -o /dev/null -w "    HTTP Status: %{http_code}\n" http://localhost:${API_PORT}
     
     echo -e "\nTesting domain access (will fail without /etc/hosts entries):"
-    echo "  web.local.dev:"
-    curl -s -o /dev/null -w "    HTTP Status: %{http_code}\n" -k --connect-timeout 2 https://web.local.dev 2>/dev/null || echo "    Failed (expected without /etc/hosts entry)"
+    echo "  web.dynadock.lan:"
+    curl -s -o /dev/null -w "    HTTP Status: %{http_code}\n" -k --connect-timeout 2 https://web.dynadock.lan 2>/dev/null || echo "    Failed (expected without /etc/hosts entry)"
     
-    echo "  api.local.dev:"
-    curl -s -o /dev/null -w "    HTTP Status: %{http_code}\n" -k --connect-timeout 2 https://api.local.dev 2>/dev/null || echo "    Failed (expected without /etc/hosts entry)"
+    echo "  api.dynadock.lan:"
+    curl -s -o /dev/null -w "    HTTP Status: %{http_code}\n" -k --connect-timeout 2 https://api.dynadock.lan 2>/dev/null || echo "    Failed (expected without /etc/hosts entry)"
 fi
 
 echo -e "\n4. Checking /etc/hosts for domain entries:"
 echo "-----------------------------------------"
-if grep -q "local.dev" /etc/hosts; then
-    echo "Found local.dev entries in /etc/hosts:"
-    grep "local.dev" /etc/hosts
+if grep -q "dynadock.lan" /etc/hosts; then
+    echo "Found dynadock.lan entries in /etc/hosts:"
+    grep "dynadock.lan" /etc/hosts
 else
-    echo "No local.dev entries found in /etc/hosts"
+    echo "No dynadock.lan entries found in /etc/hosts"
     echo "To enable domain access, add these lines to /etc/hosts:"
-    echo "  127.0.0.1 web.local.dev"
-    echo "  127.0.0.1 api.local.dev"
+    echo "  127.0.0.1 web.dynadock.lan"
+    echo "  127.0.0.1 api.dynadock.lan"
 fi
 
 echo -e "\n5. Cleaning up..."

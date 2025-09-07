@@ -19,7 +19,7 @@ The DynaDock testing framework has been completely refactored from a single mono
 
 ```python
 from src.dynadock.testing.network_analyzer import analyze_network_connectivity
-result = analyze_network_connectivity('https://frontend.local.dev')
+result = analyze_network_connectivity('https://frontend.dynadock.lan')
 # Returns: {'hostname', 'port', 'scheme', 'tcp_connect', 'dns_resolution', 'port_scan', 'ssl_cert_info'}
 ```
 
@@ -49,7 +49,7 @@ status = check_system_status()
 
 ```python
 from src.dynadock.testing.browser_tester import test_domain_headless
-result = await test_domain_headless('https://frontend.local.dev')
+result = await test_domain_headless('https://frontend.dynadock.lan')
 # Returns: {'success', 'status', 'load_time', 'screenshot_path', 'errors', 'ssl_errors', 'network_requests', 'console_logs'}
 ```
 
@@ -105,7 +105,7 @@ repairs = auto_repair_issues(['container not running', 'port conflict'])
 ### Phase 2: Network Analysis
 ```
 🌐 Analyzing network connectivity...
-   🔍 DNS Resolution: frontend.local.dev → 127.0.0.1
+   🔍 DNS Resolution: frontend.dynadock.lan → 127.0.0.1
    🔗 TCP Connect: Port 443 accessible
    🔒 SSL Certificate: Valid (mkcert)
 ```
@@ -188,9 +188,9 @@ python3 tests/unit/test_testing_modules.py
 
 ### Test Domains
 Default test domains in `test_domains_simple.py`:
-- `https://frontend.local.dev/`
-- `https://mailhog.local.dev/`
-- `https://backend.local.dev/health`
+- `https://frontend.dynadock.lan/`
+- `https://mailhog.dynadock.lan/`
+- `https://backend.dynadock.lan/health`
 - `http://localhost:8000/`
 
 ### Screenshots
@@ -243,9 +243,9 @@ docker ps  # Verify containers are running
 #### 4. Missing Hosts Entries
 The auto-repair module will detect and suggest the required entries:
 ```
-127.0.0.1 frontend.local.dev
-127.0.0.1 mailhog.local.dev
-127.0.0.1 backend.local.dev
+127.0.0.1 frontend.dynadock.lan
+127.0.0.1 mailhog.dynadock.lan
+127.0.0.1 backend.dynadock.lan
 ```
 
 ## Performance Metrics

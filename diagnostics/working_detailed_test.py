@@ -149,8 +149,8 @@ async def main():
     # Test cases
     test_cases = [
         ('http://localhost:8000', 'Localhost Direct Access (HTTP)'),
-        ('https://frontend.local.dev', 'Frontend Local Domain (HTTPS)'),  
-        ('https://mailhog.local.dev', 'MailHog Local Domain (HTTPS)')
+        ('https://frontend.dynadock.lan', 'Frontend Local Domain (HTTPS)'),  
+        ('https://mailhog.dynadock.lan', 'MailHog Local Domain (HTTPS)')
     ]
     
     print(f"\n🧪 ROZPOCZĘCIE TESTÓW {len(test_cases)} PRZYPADKÓW")

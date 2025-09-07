@@ -68,7 +68,7 @@ This example demonstrates a complete microservices architecture with multiple se
 ### Standard Mode
 ```bash
 cd examples/microservices
-dynadock up --domain microservices.local --enable-tls
+dynadock up --domain microservices.dynadock.lan --enable-tls
 ```
 
 ### 🌐 LAN-Visible Mode (Access from any device)
@@ -80,15 +80,15 @@ sudo dynadock up --lan-visible
 ## 🌐 Access URLs
 
 ### Standard Mode
-- **🌐 API Gateway**: https://gateway.microservices.local
-- **🔐 Auth Service**: https://auth-service.microservices.local
-- **👤 User Service**: https://user-service.microservices.local
-- **📦 Product Service**: https://product-service.microservices.local
-- **🛒 Order Service**: https://order-service.microservices.local
-- **📧 Notification Service**: https://notification-service.microservices.local
-- **📊 Grafana**: https://grafana.microservices.local
-- **🐰 RabbitMQ Management**: https://rabbitmq.microservices.local
-- **📧 MailHog**: https://mailhog.microservices.local
+- **🌐 API Gateway**: https://gateway.microservices.dynadock.lan
+- **🔐 Auth Service**: https://auth-service.microservices.dynadock.lan
+- **👤 User Service**: https://user-service.microservices.dynadock.lan
+- **📦 Product Service**: https://product-service.microservices.dynadock.lan
+- **🛒 Order Service**: https://order-service.microservices.dynadock.lan
+- **📧 Notification Service**: https://notification-service.microservices.dynadock.lan
+- **📊 Grafana**: https://grafana.microservices.dynadock.lan
+- **🐰 RabbitMQ Management**: https://rabbitmq.microservices.dynadock.lan
+- **📧 MailHog**: https://mailhog.microservices.dynadock.lan
 
 ### LAN-Visible Mode
 After starting with `--lan-visible`, access services directly via IP:

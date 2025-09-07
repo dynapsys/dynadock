@@ -1301,7 +1301,7 @@ DynaDock is an intelligent CLI tool that solves common Docker Compose problems t
 
 - **Dynamic Port Allocation** - No more port conflicts
 - **Automatic TLS/HTTPS** - Via Caddy with Let's Encrypt certificates
-- **Local Subdomains** - Each service accessible at `service.local.dev`
+- **Local Subdomains** - Each service accessible at `service.dynadock.lan`
 - **Zero-config CORS** - Automatic CORS configuration for APIs
 - **Simple Deployment** - One command for local and production environments
 - **Automatic .env Generation** - All environment variables generated
@@ -1318,9 +1318,9 @@ uv tool install dynadock
 dynadock up --enable-tls
 
 # Your services are now available at:
-# https://api.local.dev
-# https://frontend.local.dev
-# https://postgres.local.dev
+# https://api.dynadock.lan
+# https://frontend.dynadock.lan
+# https://postgres.dynadock.lan
 ```
 
 ## Why DynaDock?
@@ -1360,7 +1360,7 @@ graph TD
     F -->|start| L[Caddy Server]
     
     L -->|proxy| K
-    A -->|https://service.local.dev| L
+    A -->|https://service.dynadock.lan| L
 ```
 
 ## Installation
@@ -1491,7 +1491,7 @@ For local development with custom domains:
 
 ```bash
 # Add to /etc/hosts
-127.0.0.1 *.local.dev
+127.0.0.1 *.dynadock.lan
 
 # Or use dnsmasq for wildcard domains
 brew install dnsmasq  # macOS

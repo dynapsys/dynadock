@@ -56,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error Diagnostics**: Clear failure identification with specific error details
 - **Three-Domain Test Coverage**: Comprehensive testing for:
   - `http://localhost:8000` (direct localhost access)
-  - `https://frontend.local.dev` (frontend local domain)
-  - `https://mailhog.local.dev` (MailHog local domain)
+  - `https://frontend.dynadock.lan` (frontend local domain)
+  - `https://mailhog.dynadock.lan` (MailHog local domain)
 - **Screenshot Verification**: Browser-based visual proof of service accessibility
 - **Structured Reporting**: JSON output with detailed statistics and recommendations
 

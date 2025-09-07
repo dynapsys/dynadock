@@ -52,15 +52,15 @@ dynadock up --scale api=2  # Instead of default
 
 ### DNS Resolution Issues
 
-#### Problem: "Cannot access *.local.dev domains"
+#### Problem: "Cannot access *.dynadock.lan domains"
 
 **Solution 1: Add to /etc/hosts**
 
 ```bash
 # Add these lines to /etc/hosts
-127.0.0.1 api.local.dev
-127.0.0.1 frontend.local.dev
-127.0.0.1 postgres.local.dev
+127.0.0.1 api.dynadock.lan
+127.0.0.1 frontend.dynadock.lan
+127.0.0.1 postgres.dynadock.lan
 ```
 
 **Solution 2: Use dnsmasq (recommended)**
@@ -70,7 +70,7 @@ dynadock up --scale api=2  # Instead of default
 sudo apt-get install dnsmasq
 
 # Configure dnsmasq
-echo "address=/.local.dev/127.0.0.1" | sudo tee /etc/dnsmasq.d/local.dev.conf
+echo "address=/.dynadock.lan/127.0.0.1" | sudo tee /etc/dnsmasq.d/dynadock.lan.conf
 
 # Restart dnsmasq
 sudo systemctl restart dnsmasq
@@ -79,7 +79,7 @@ sudo systemctl restart dnsmasq
 **Solution 3: Use localhost with port**
 
 ```bash
-# Instead of https://api.local.dev
+# Instead of https://api.dynadock.lan
 # Use http://localhost:3001
 ```
 

@@ -41,7 +41,7 @@ What happens under the hood:
 * An *.env* file (`.env.dynadock`) is generated:
 
 ```dotenv
-API_URL=https://api.local.dev
+API_URL=https://api.dynadock.lan
 REDIS_URL=redis://localhost:6379
 ```
 
@@ -63,7 +63,7 @@ Sample output:
 
 ```text
 SERVICE   URL                     PORT  STATE  TLS
-api       https://api.local.dev   8012  UP     ✅
+api       https://api.dynadock.lan   8012  UP     ✅
 redis     redis://localhost       6379  UP     ❌
 ```
 

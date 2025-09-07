@@ -23,7 +23,7 @@ port_range:
 tls:
   enabled: true
 
-domain: local.dev
+domain: dynadock.lan
 ```
 
 ---

@@ -48,15 +48,15 @@ def check_system_status() -> Dict[str, Any]:
     except Exception as e:
         status['ports_listening']['error'] = str(e)
     
-    # Check /etc/hosts for local.dev entries
+    # Check /etc/hosts for dynadock.lan entries
     try:
         with open('/etc/hosts', 'r') as f:
             for line_num, line in enumerate(f, 1):
-                if 'local.dev' in line:
+                if 'dynadock.lan' in line:
                     status['hosts_file'][line_num] = line.strip()
         
         if not status['hosts_file']:
-            status['hosts_file']['info'] = 'No local.dev entries found in /etc/hosts'
+            status['hosts_file']['info'] = 'No dynadock.lan entries found in /etc/hosts'
     except Exception as e:
         status['hosts_file']['error'] = str(e)
     

@@ -17,26 +17,26 @@ dynadock up
 
 ## 📋 Dostępne serwisy
 
-- **API**: https://api.local.dev - REST API (Node.js/Express)
-- **PostgreSQL**: https://postgres.local.dev - Baza danych
-- **Redis**: https://redis.local.dev - Cache
-- **Adminer**: https://adminer.local.dev - GUI dla bazy danych
+- **API**: https://api.dynadock.lan - REST API (Node.js/Express)
+- **PostgreSQL**: https://postgres.dynadock.lan - Baza danych
+- **Redis**: https://redis.dynadock.lan - Cache
+- **Adminer**: https://adminer.dynadock.lan - GUI dla bazy danych
 
 ## 🧪 Testowanie API
 
 ### Health Check
 ```bash
-curl https://api.local.dev/health
+curl https://api.dynadock.lan/health
 ```
 
 ### Lista użytkowników
 ```bash
-curl https://api.local.dev/api/users
+curl https://api.dynadock.lan/api/users
 ```
 
 ### Dodanie użytkownika
 ```bash
-curl -X POST https://api.local.dev/api/users \
+curl -X POST https://api.dynadock.lan/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "Test User", "email": "test@example.com"}'
 ```
@@ -44,12 +44,12 @@ curl -X POST https://api.local.dev/api/users \
 ### Cache
 ```bash
 # Zapisz wartość
-curl -X POST https://api.local.dev/api/cache/mykey \
+curl -X POST https://api.dynadock.lan/api/cache/mykey \
   -H "Content-Type: application/json" \
   -d '{"value": "Hello World", "ttl": 60}'
 
 # Odczytaj wartość
-curl https://api.local.dev/api/cache/mykey
+curl https://api.dynadock.lan/api/cache/mykey
 ```
 
 ## 📁 Struktura

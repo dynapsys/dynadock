@@ -158,7 +158,7 @@ def verify_domain_access(
 # Function moved to cli_helpers.display module
 
 @cli.command()
-@click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
+@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
 @click.option("--reload", is_flag=True, help="Reload configuration and restart if already running.")
 @click.option("--start-port", "-p", default=8000, type=int, help="Starting port for allocation")
 @click.option("--enable-tls", is_flag=True, help="Enable TLS with an internal CA via Caddy")
@@ -411,7 +411,7 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
         remove_images = True
 
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    domain = env_values.get("DYNADOCK_DOMAIN", "local.dev")
+    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
 
     dns_manager = DnsManager(project_dir, domain)
     hosts_manager = HostsManager(project_dir)
@@ -491,7 +491,7 @@ def ps(ctx: click.Context) -> None:  # noqa: D401
         if key.endswith("_PORT"):
             ports[key[:-5].lower()] = int(val)
 
-    _display_running_services(ports, env_values.get("DYNADOCK_DOMAIN", "local.dev"), env_values.get("DYNADOCK_ENABLE_TLS", "false") == "true", status_map)
+    _display_running_services(ports, env_values.get("DYNADOCK_DOMAIN", "dynadock.lan"), env_values.get("DYNADOCK_ENABLE_TLS", "false") == "true", status_map)
 
 @cli.command()
 @click.pass_context
@@ -525,7 +525,7 @@ def health(ctx: click.Context, stop_on_fail: bool) -> None:  # noqa: D401
         console.print("[red]No .env.dynadock found. Run `up` first.[/red]")
         raise SystemExit(1)
 
-    domain = env_values.get("DYNADOCK_DOMAIN", "local.dev")
+    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
     enable_tls = env_values.get("DYNADOCK_ENABLE_TLS", "false").lower() == "true"
     protocol = "https" if enable_tls else "http"
 
@@ -570,7 +570,7 @@ def health(ctx: click.Context, stop_on_fail: bool) -> None:  # noqa: D401
 
 
 @cli.command(name="net-diagnose")
-@click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
+@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
 @click.pass_context
 def net_diagnose(ctx: click.Context, domain: str) -> None:
     """Diagnose Dynadock virtual networking and DNS setup."""
@@ -585,7 +585,7 @@ def net_diagnose(ctx: click.Context, domain: str) -> None:
 
 
 @cli.command(name="net-repair")
-@click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
+@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
 @click.pass_context
 def net_repair(ctx: click.Context, domain: str) -> None:
     """Attempt to auto-repair Dynadock virtual networking and DNS."""
@@ -725,7 +725,7 @@ def doctor(ctx: click.Context, auto_fix: bool) -> None:
     project_dir: Path = ctx.obj["project_dir"]
     env_file: str = ctx.obj["env_file"]
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    domain = env_values.get("DYNADOCK_DOMAIN", "local.dev")
+    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
 
     pre = PreflightChecker(project_dir)
     report = pre.run()

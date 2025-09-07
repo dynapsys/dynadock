@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+import docker
 
 from .utils import render_template
 
@@ -31,7 +34,7 @@ CADDYFILE_TEMPLATE = """
 # HTTPS Health endpoint
 https://localhost/health {
     {% if enable_tls %}
-    tls /etc/caddy/certs/_wildcard.local.dev+2.pem /etc/caddy/certs/_wildcard.local.dev+2-key.pem
+    tls /etc/caddy/certs/_wildcard.dynadock.lan+2.pem /etc/caddy/certs/_wildcard.dynadock.lan+2-key.pem
     {% endif %}
     respond "OK" 200
 }
@@ -42,7 +45,7 @@ https://localhost/health {
 # ------------------------------
 {{ service }}.{{ domain }} {
     {% if enable_tls %}
-    tls /etc/caddy/certs/_wildcard.local.dev+2.pem /etc/caddy/certs/_wildcard.local.dev+2-key.pem
+    tls /etc/caddy/certs/_wildcard.dynadock.lan+2.pem /etc/caddy/certs/_wildcard.dynadock.lan+2-key.pem
     {% endif %}
 
     header {
@@ -78,12 +81,18 @@ class CaddyConfig:
         self.project_dir = project_dir or Path.cwd()
         self.config_dir = self.project_dir / "caddy_config"
         self.data_dir = self.project_dir / "caddy_data"
+        self.caddy_dir = self.project_dir / ".dynadock" / "caddy"
         self.caddyfile_path = self.config_dir / "caddy" / "Caddyfile"
+        self.client = docker.from_env()
+        
+        # Ensure directories exist
+        self.caddy_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info(f" CaddyConfig initialized for domain: {domain}")
         logger.debug(f" TLS enabled: {enable_tls}")
         logger.debug(f" Config directory: {self.config_dir}")
         logger.debug(f" Data directory: {self.data_dir}")
+        logger.debug(f" Caddy directory: {self.caddy_dir}")
 
     def generate(
         self,
@@ -102,13 +111,13 @@ class CaddyConfig:
         service_data = {s: {"port": p, "ip": ips.get(s)} for s, p in ports.items()}
 
         caddyfile_content = template.render(
-            domain=domain,
-            enable_tls=enable_tls,
+            domain=self.domain,
+            enable_tls=self.enable_tls,
             services=service_data,
             cors_origins=cors_origins or [
                 "http://localhost:3000",
                 "http://localhost:5173",
-                f"https://*.{domain}",
+                f"https://*.{self.domain}",
             ],
         )
         caddyfile_path = self.caddy_dir / "Caddyfile"

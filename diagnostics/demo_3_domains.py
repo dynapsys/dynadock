@@ -167,8 +167,8 @@ async def main():
     # Define test domains
     test_domains = [
         ('http://localhost:8000/', 'Localhost Direct Access'),
-        ('https://frontend.local.dev/', 'Frontend Local Domain'),
-        ('https://mailhog.local.dev/', 'MailHog Local Domain')
+        ('https://frontend.dynadock.lan/', 'Frontend Local Domain'),
+        ('https://mailhog.dynadock.lan/', 'MailHog Local Domain')
     ]
     
     results = []

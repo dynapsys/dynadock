@@ -113,7 +113,7 @@ def cli(ctx, compose_file, env_file):
     ctx.obj['project_dir'] = Path(compose_file).parent if compose_file else Path.cwd()
 
 @cli.command()
-@click.option('--domain', '-d', default='local.dev', help='Base domain for services')
+@click.option('--domain', '-d', default='dynadock.lan', help='Base domain for services')
 @click.option('--start-port', '-p', default=8000, help='Starting port for allocation')
 @click.option('--enable-tls', is_flag=True, help='Enable TLS with Caddy')
 @click.option('--cors-origins', '-c', multiple=True, help='CORS allowed origins')
@@ -985,7 +985,7 @@ DynaDock to inteligentne narzędzie CLI, które rozwiązuje typowe problemy z Do
 
 - 🎯 **Dynamiczna alokacja portów** - koniec z konfliktami portów
 - 🔒 **Automatyczne TLS/HTTPS** - przez Caddy z certyfikatami Let's Encrypt
-- 🌐 **Lokalne subdomeny** - każdy serwis dostępny pod `service.local.dev`
+- 🌐 **Lokalne subdomeny** - każdy serwis dostępny pod `service.dynadock.lan`
 - ⚡ **Zero-config CORS** - automatyczna konfiguracja CORS dla API
 - 🚀 **Prosty deployment** - jeden komenda dla lokalnego i produkcyjnego środowiska
 - 📝 **Automatyczny .env** - generowanie wszystkich zmiennych środowiskowych
@@ -1054,9 +1054,9 @@ volumes:
 
 Po uruchomieniu `dynadock up --enable-tls`:
 
-- API: https://api.local.dev
-- Frontend: https://frontend.local.dev
-- Postgres: postgres.local.dev:5432
+- API: https://api.dynadock.lan
+- Frontend: https://frontend.dynadock.lan
+- Postgres: postgres.dynadock.lan:5432
 
 ## 🛠️ Komendy CLI
 
@@ -1069,7 +1069,7 @@ dynadock up [OPTIONS]
 
 Opcje:
   -f, --compose-file PATH    Ścieżka do docker-compose.yaml
-  -d, --domain TEXT         Bazowa domena [default: local.dev]
+  -d, --domain TEXT         Bazowa domena [default: dynadock.lan]
   -p, --start-port INT      Początkowy port [default: 8000]
   --enable-tls              Włącz HTTPS przez Caddy
   -c, --cors-origins TEXT   Dozwolone originy CORS (wielokrotne)
@@ -1110,20 +1110,20 @@ dynadock exec -s api /bin/bash
 
 ```env
 # General
-DYNADOCK_DOMAIN=local.dev
+DYNADOCK_DOMAIN=dynadock.lan
 DYNADOCK_PROTOCOL=https
 DYNADOCK_ENABLE_TLS=true
-DYNADOCK_CORS_ORIGINS=http://localhost:3000,https://*.local.dev
+DYNADOCK_CORS_ORIGINS=http://localhost:3000,https://*.dynadock.lan
 
 # Services
 API_PORT=8001
 API_HOST=0.0.0.0
-API_URL=https://api.local.dev
+API_URL=https://api.dynadock.lan
 API_INTERNAL_URL=http://api:8001
 
 FRONTEND_PORT=8002
 FRONTEND_HOST=0.0.0.0
-FRONTEND_URL=https://frontend.local.dev
+FRONTEND_URL=https://frontend.dynadock.lan
 FRONTEND_INTERNAL_URL=http://frontend:8002
 
 # Database
@@ -1142,9 +1142,9 @@ DYNADOCK_JWT_SECRET=random_jwt_secret
 
 ```bash
 # Dodaj do /etc/hosts
-127.0.0.1 api.local.dev
-127.0.0.1 frontend.local.dev
-127.0.0.1 postgres.local.dev
+127.0.0.1 api.dynadock.lan
+127.0.0.1 frontend.dynadock.lan
+127.0.0.1 postgres.dynadock.lan
 
 # Lub użyj dnsmasq dla wildcard domains
 ```
@@ -1238,7 +1238,7 @@ cd /path/to/your/docker/project
 dynadock up --enable-tls
 
 # Twoje serwisy będą dostępne pod:
-# https://api.local.dev
-# https://frontend.local.dev
+# https://api.dynadock.lan
+# https://frontend.dynadock.lan
 # itd.
 ```

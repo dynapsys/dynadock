@@ -17,12 +17,12 @@ dynadock up
 
 ## 📋 Dostępne serwisy
 
-- **Web**: https://web.local.dev - Statyczna strona HTML
-- **API**: https://api.local.dev - Prosty API server
+- **Web**: https://web.dynadock.lan - Statyczna strona HTML
+- **API**: https://api.dynadock.lan - Prosty API server
 
 ## 🧪 Testowanie
 
-1. Otwórz przeglądarkę i przejdź do https://web.local.dev
+1. Otwórz przeglądarkę i przejdź do https://web.dynadock.lan
 2. Kliknij przycisk "Test API Connection" aby przetestować połączenie z API
 3. Sprawdź logi: `dynadock logs`
 

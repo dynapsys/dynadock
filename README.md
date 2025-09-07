@@ -1,27 +1,42 @@
-# DynaDock
+# 🚀 DynaDock
 
-**Dynamic Docker Compose orchestrator with automatic port allocation, TLS, and local subdomain routing.**
+## Zaawansowana Platforma Orkiestracji Docker z Automatycznym Zarządzaniem Domenami Lokalnymi
 
-DynaDock is an intelligent Docker Compose orchestrator that eliminates common development pain points by providing dynamic port allocation, automatic HTTPS through Caddy reverse proxy, and seamless local subdomain routing.
+DynaDock to inteligentny system orkiestracji kontenerów Docker, który eliminuje typowe problemy developmentu poprzez dynamiczną alokację portów, automatyczne HTTPS z Caddy reverse proxy i seamless routing domen lokalnych z obsługą sieci LAN.
+
+## 📚 **[➤ PEŁNA DOKUMENTACJA](docs/README.md)**
+
+**Kompletna dokumentacja z diagramami architektury, szczegółami implementacji i przykładami:**
+
+- 🏗️ **[Architektura i Opis Rozwiązania](docs/ARCHITECTURE.md)** - Szczegółowe diagramy i opis systemu
+- 💻 **[Dokumentacja Kodu](docs/CODE_REFERENCE.md)** - Pełna referencja kodu źródłowego  
+- 🚀 **[Przewodnik Użytkownika](docs/USAGE.md)** - Instrukcje użycia i konfiguracji
+- 🔧 **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Rozwiązywanie problemów
+- 🧪 **[Framework Testowy](docs/TESTING_FRAMEWORK.md)** - System testowania i diagnostyki
 
 ## ✨ Key Features
 
 ### 🔌 **Dynamic Port Allocation**
+
 - Automatic scanning of occupied ports
 - Intelligent allocation of free ports to services
 - Zero port conflicts across projects
 
 ### 🔒 **Automatic TLS/HTTPS**
+
 - Caddy reverse proxy with automatic certificates
 - Let's Encrypt support for production
 - Trusted local certificates for development using mkcert
 
 ### 🌐 **Local Subdomain Routing**
-- Each service accessible via `service.local.dev`
-- Automatic routing configuration
-- API Gateway at `api.local.dev`
+
+- Each service accessible via `service.dynadock.lan`
+- Automatic routing configuration  
+- Cross-device LAN access support
+- Trusted HTTPS certificates with mkcert
 
 ### ⚡ **Zero-Config Deployment**
+
 - Automatic `.env.dynadock` generation
 - Built-in CORS configuration  
 - Production-ready with single command
@@ -33,21 +48,28 @@ DynaDock is an intelligent Docker Compose orchestrator that eliminates common de
 pip install dynadock
 
 # Navigate to your project directory with docker-compose.yaml
-cd your-project/
+cd examples/fullstack/
 
-# Start services with HTTPS
-dynadock up --enable-tls
+# Start services with HTTPS (dynadock.lan domain)
+dynadock up --tls
 
 # Your services will be available at:
-# https://api.local.dev
-# https://frontend.local.dev  
-# https://postgres.local.dev
+# https://frontend.dynadock.lan
+# https://backend.dynadock.lan  
+# https://mailhog.dynadock.lan
+
+# For LAN-wide access (phones, tablets, other computers):
+sudo dynadock up --lan-visible
 ```
 
 ## 📦 Core Components
 
 - **CLI Interface**: Complete command set (`up`, `down`, `ps`, `logs`, `exec`)
 - **Port Allocator**: Intelligent port management and conflict resolution
+- **Caddy Reverse Proxy**: Automatic HTTPS with mkcert integration
+- **Network Manager**: Virtual IP allocation and LAN visibility
+- **Environment Generator**: Automatic service configuration
+- **Health Check System**: Service monitoring and verification
 - **Environment Generator**: Automatic environment variable configuration
 - **Caddy Manager**: Dynamic reverse proxy configuration
 - **Docker Manager**: Container orchestration and lifecycle management
@@ -356,7 +378,7 @@ dynadock up --enable-tls
 
 1. ✅ Dynamiczna alokacja portów
 2. ✅ Automatyczny TLS/HTTPS przez Caddy
-3. ✅ Lokalne subdomeny (service.local.dev)
+3. ✅ Lokalne subdomeny (service.dynadock.lan)
 4. ✅ Generowanie .env ze wszystkimi zmiennymi
 5. ✅ Konfiguracja CORS
 6. ✅ Load balancing
@@ -374,7 +396,7 @@ Projekt jest **w pełni kompletny** i gotowy do:
 
 ## 🌐 Wirtualne interfejsy i domeny lokalne (bez konfliktów portów)
 
-Dynadock uruchamia dla każdego serwisu osobny, wirtualny interfejs sieciowy (dummy) o nazwie `dynadock-<service>` z przypisanym adresem IP z podsieci `172.20.0.0/16`. Caddy proxy kieruje ruch na te adresy IP, co pozwala na stabilne mapowanie domen `service.local.dev` bez konieczności publikowania portów każdego kontenera.
+Dynadock uruchamia dla każdego serwisu osobny, wirtualny interfejs sieciowy (dummy) o nazwie `dynadock-<service>` z przypisanym adresem IP z podsieci `172.20.0.0/16`. Caddy proxy kieruje ruch na te adresy IP, co pozwala na stabilne mapowanie domen `service.dynadock.lan` bez konieczności publikowania portów każdego kontenera.
 
 Kluczowe elementy:
 
@@ -386,7 +408,7 @@ Kluczowe elementy:
 ### Opcje rozwiązywania nazw domen
 
 - Domyślne – Lokalny DNS (dnsmasq + systemd-resolved)
-  - Integracja z `dnsmasq`/`systemd-resolved` dla domeny `*.local.dev` bez modyfikacji `/etc/hosts`.
+  - Integracja z `dnsmasq`/`systemd-resolved` dla domeny `*.dynadock.lan` bez modyfikacji `/etc/hosts`.
   - Pozwala całkowicie uniknąć zmian w `/etc/hosts` i jest trwalsza dla wielu projektów.
 
 - Alternatywa – Automatyczne wpisy do `/etc/hosts` (opcjonalnie)
@@ -395,16 +417,16 @@ Kluczowe elementy:
 
 #### Konfiguracja lokalnego DNS (automatyczna podczas `dynadock up`)
 
-- Dynadock uruchamia kontener z `dnsmasq` nasłuchujący na `127.0.0.1:53` i generuje mapę `address=/service.local.dev/<IP>` w pliku `.dynadock/dns/dynadock.conf`.
+- Dynadock uruchamia kontener z `dnsmasq` nasłuchujący na `127.0.0.1:53` i generuje mapę `address=/service.dynadock.lan/<IP>` w pliku `.dynadock/dns/dynadock.conf`.
 - Następnie podejmuje próbę skonfigurowania `systemd-resolved` do routingu strefy `~<domena>` na `127.0.0.1` (interfejs `lo`):
 
 ```bash
 sudo resolvectl dns lo 127.0.0.1
-sudo resolvectl domain lo ~local.dev
+sudo resolvectl domain lo ~dynadock.lan
 sudo resolvectl flush-caches
 ```
 
-Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równoważny mechanizm w NetworkManager lub innym resolverze, aby przekierować zapytania `*.local.dev` na `127.0.0.1:53`.
+Jeśli Twoja dystrybucja nie korzysta z `systemd-resolved`, skonfiguruj równoważny mechanizm w NetworkManager lub innym resolverze, aby przekierować zapytania `*.dynadock.lan` na `127.0.0.1:53`.
 
 #### Fallback: /etc/hosts
 
@@ -441,7 +463,7 @@ PYTHONPATH=$(git rev-parse --show-toplevel)/src \
 Komenda `doctor` łączy preflight oraz diagnostykę sieci (`net-diagnose`) i opcjonalnie wykonuje automatyczne naprawy (`--auto-fix`).
 
 - Sprawdza wymagane binaria, dostęp do Dockera i zajętość portów 53/80/443.
-- Weryfikuje konfigurację wirtualnej sieci i lokalnego DNS dla domeny (np. `*.local.dev`).
+- Weryfikuje konfigurację wirtualnej sieci i lokalnego DNS dla domeny (np. `*.dynadock.lan`).
 - Z `--auto-fix` usuwa ewentualne stare kontenery `dynadock-*` i czyści cache DNS (`resolvectl flush-caches`).
 
 Przykład:
@@ -475,8 +497,8 @@ PYTHONPATH=$(git rev-parse --show-toplevel)/src \
 cat .env.dynadock
 
 # 3) Weryfikacja dostępu (domeny i localhost)
-curl -k https://web.local.dev   # domena (wymaga /etc/hosts lub lokalnego DNS)
-curl -k https://api.local.dev
+curl -k https://web.dynadock.lan   # domena (wymaga /etc/hosts lub lokalnego DNS)
+curl -k https://api.dynadock.lan
 
 # Fallback (zawsze działa):
 curl http://localhost:$WEB_PORT
@@ -502,13 +524,13 @@ Dynadock dostarcza narzędzia do diagnozowania i automatycznej naprawy problemó
 
 ```bash
 # Diagnoza (sprawdza interfejsy dynadock-*, kontener DNS, systemd-resolved, getent, curl)
-PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-diagnose -d local.dev
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-diagnose -d dynadock.lan
 
 # Próba automatycznej naprawy (ustawia stub domenę w systemd-resolved, restartuje DNS, odtwarza interfejsy)
-PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-repair -d local.dev
+PYTHONPATH=$(git rev-parse --show-toplevel)/src python -m dynadock.cli net-repair -d dynadock.lan
 ```
 
-Jeżeli korzystasz z dystrybucji bez `systemd-resolved`, narzędzia wyświetlą wskazówki jak ręcznie skierować domenę `~local.dev` do `127.0.0.1`.
+Jeżeli korzystasz z dystrybucji bez `systemd-resolved`, narzędzia wyświetlą wskazówki jak ręcznie skierować domenę `~dynadock.lan` do `127.0.0.1`.
 
 ### Rozwiązywanie problemów (Troubleshooting)
 
@@ -518,7 +540,7 @@ Jeżeli korzystasz z dystrybucji bez `systemd-resolved`, narzędzia wyświetlą 
 - Port 53/80/443 zajęty
   - Zwolnij porty lub zatrzymaj proces (np. `sudo lsof -i :53`, `make free-port-80`).
 
-- Domeny *.local.dev nie rozwiązują się
-  - `python -m dynadock.cli net-diagnose -d local.dev` pokaże brak stub domeny lub konflikt portu 53.
-  - Spróbuj `python -m dynadock.cli net-repair -d local.dev`.
+- Domeny *.dynadock.lan nie rozwiązują się
+  - `python -m dynadock.cli net-diagnose -d dynadock.lan` pokaże brak stub domeny lub konflikt portu 53.
+  - Spróbuj `python -m dynadock.cli net-repair -d dynadock.lan`.
   - Ewentualnie przełącz się na `--manage-hosts`.

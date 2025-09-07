@@ -62,8 +62,8 @@ def step_2_check_certs():
     
     certs_dir = Path("/home/tom/github/dynapsys/dynadock/certs")
     cert_files = [
-        "_wildcard.local.dev+2.pem",
-        "_wildcard.local.dev+2-key.pem"
+        "_wildcard.dynadock.lan+2.pem",
+        "_wildcard.dynadock.lan+2-key.pem"
     ]
     
     for cert_file in cert_files:
@@ -84,7 +84,7 @@ def step_3_check_hosts():
         with open('/etc/hosts', 'r') as f:
             hosts_content = f.read()
         
-        domains = ['frontend.local.dev', 'backend.local.dev', 'mailhog.local.dev']
+        domains = ['frontend.dynadock.lan', 'backend.dynadock.lan', 'mailhog.dynadock.lan']
         for domain in domains:
             if domain in hosts_content:
                 console.print(f"[green]✓ {domain} found in /etc/hosts[/green]")
@@ -145,7 +145,7 @@ def step_5_start_caddy():
         caddy.generate(
             services={name: {} for name in services},
             ports=services,
-            domain='local.dev',
+            domain='dynadock.lan',
             enable_tls=True,
             cors_origins=['*'],
             ips=ips
@@ -178,9 +178,9 @@ def step_6_test_services():
         ("Frontend HTTP", "http://localhost:8000", 200),
         ("Backend HTTP", "http://localhost:8001", 404),  # Expect 404 for root path
         ("MailHog HTTP", "http://localhost:8025", 200),
-        ("Frontend HTTPS", "https://frontend.local.dev/", 200),
-        ("Backend HTTPS", "https://backend.local.dev/", 404),  # Expect 404 for root path
-        ("MailHog HTTPS", "https://mailhog.local.dev/", 200),
+        ("Frontend HTTPS", "https://frontend.dynadock.lan/", 200),
+        ("Backend HTTPS", "https://backend.dynadock.lan/", 404),  # Expect 404 for root path
+        ("MailHog HTTPS", "https://mailhog.dynadock.lan/", 200),
     ]
     
     results = []
@@ -213,9 +213,9 @@ def step_7_final_status():
     
     console.print("\n[green]🎉 DynaDock is ready![/green]")
     console.print("[bold]Access your services:[/bold]")
-    console.print("• Frontend HTTPS: https://frontend.local.dev/")
-    console.print("• Backend HTTPS: https://backend.local.dev/")
-    console.print("• MailHog HTTPS: https://mailhog.local.dev/")
+    console.print("• Frontend HTTPS: https://frontend.dynadock.lan/")
+    console.print("• Backend HTTPS: https://backend.dynadock.lan/")
+    console.print("• MailHog HTTPS: https://mailhog.dynadock.lan/")
     console.print("• HTTP Health: http://localhost/health")
     console.print("• HTTPS Health: https://localhost/health")
 

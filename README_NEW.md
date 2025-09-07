@@ -61,9 +61,9 @@ make install
 dynadock up
 
 # Twoje serwisy będą dostępne pod:
-# http://api.local.dev:8000
-# http://web.local.dev:8001
-# http://redis.local.dev:8002
+# http://api.dynadock.lan:8000
+# http://web.dynadock.lan:8001
+# http://redis.dynadock.lan:8002
 ```
 
 ### 2. Z HTTPS (zalecane)
@@ -72,9 +72,9 @@ dynadock up
 dynadock up --enable-tls
 
 # Serwisy dostępne pod:
-# https://api.local.dev
-# https://web.local.dev
-# https://redis.local.dev
+# https://api.dynadock.lan
+# https://web.dynadock.lan
+# https://redis.dynadock.lan
 ```
 
 ### 3. Własna domena
@@ -111,8 +111,8 @@ services:
 dynadock up --enable-tls
 
 # Dostępne pod:
-# https://app.local.dev - aplikacja Node.js
-# https://mongodb.local.dev - MongoDB (z auth)
+# https://app.dynadock.lan - aplikacja Node.js
+# https://mongodb.dynadock.lan - MongoDB (z auth)
 ```
 
 ### Python FastAPI z PostgreSQL
@@ -176,11 +176,11 @@ services:
 dynadock up --enable-tls --scale user-service=3
 
 # Dostępne pod:
-# https://gateway.local.dev - API Gateway
-# https://auth-service.local.dev - Auth Service
-# https://user-service.local.dev - User Service (load balanced)
-# https://redis.local.dev - Redis
-# https://rabbitmq.local.dev - RabbitMQ Management
+# https://gateway.dynadock.lan - API Gateway
+# https://auth-service.dynadock.lan - Auth Service
+# https://user-service.dynadock.lan - User Service (load balanced)
+# https://redis.dynadock.lan - Redis
+# https://rabbitmq.dynadock.lan - RabbitMQ Management
 ```
 
 ## ⚡ Funkcjonalności
@@ -236,7 +236,7 @@ dynadock health
 
 | Opcja | Opis | Domyślnie |
 |-------|------|-----------|
-| `--domain` | Domena bazowa | `local.dev` |
+| `--domain` | Domena bazowa | `dynadock.lan` |
 | `--enable-tls` | Włącz HTTPS | `false` |
 | `--port-range` | Zakres portów | `8000-9999` |
 | `--scale SERVICE=N` | Skalowanie serwisu | `1` |
@@ -306,32 +306,32 @@ Repozytorium zawiera kompletne przykłady w katalogu `examples/`:
 ```bash
 cd examples/simple-web
 dynadock up --enable-tls
-# Otwórz: https://web.local.dev
+# Otwórz: https://web.dynadock.lan
 ```
 
 ### 2. REST API z bazą danych
 ```bash
 cd examples/rest-api
 dynadock up --enable-tls
-# API: https://api.local.dev
-# Docs: https://api.local.dev/docs
+# API: https://api.dynadock.lan
+# Docs: https://api.dynadock.lan/docs
 ```
 
 ### 3. Mikroserwisy
 ```bash
 cd examples/microservices
 dynadock up --enable-tls --scale worker=3
-# Gateway: https://gateway.local.dev
-# Services: https://[service].local.dev
+# Gateway: https://gateway.dynadock.lan
+# Services: https://[service].dynadock.lan
 ```
 
 ### 4. Full-stack aplikacja
 ```bash
 cd examples/fullstack
 dynadock up --enable-tls
-# Frontend: https://app.local.dev
-# Backend: https://api.local.dev
-# Admin: https://admin.local.dev
+# Frontend: https://app.dynadock.lan
+# Backend: https://api.dynadock.lan
+# Admin: https://admin.dynadock.lan
 ```
 
 ## 🐛 Rozwiązywanie problemów
@@ -350,7 +350,7 @@ dynadock up --port-range 9000-9999
 
 ```bash
 # Dodaj do /etc/hosts
-echo "127.0.0.1 api.local.dev web.local.dev" | sudo tee -a /etc/hosts
+echo "127.0.0.1 api.dynadock.lan web.dynadock.lan" | sudo tee -a /etc/hosts
 
 # Lub użyj systemd-resolved
 dynadock setup-dns

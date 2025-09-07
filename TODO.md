@@ -39,23 +39,23 @@
   - ✅ `http://localhost:8000/` - Frontend HTTP
   - ✅ `http://localhost:8025/` - MailHog HTTP
   - ✅ `https://localhost/health` - HTTPS health check
-  - ✅ `curl -H "Host: frontend.local.dev" https://localhost/` - HTTPS proxy
-  - ✅ `curl -H "Host: mailhog.local.dev" https://localhost/` - HTTPS proxy
+  - ✅ `curl -H "Host: frontend.dynadock.lan" https://localhost/` - HTTPS proxy
+  - ✅ `curl -H "Host: mailhog.dynadock.lan" https://localhost/` - HTTPS proxy
 
 ### 3. **🟡 SNI Routing (Dalej wymaga pracy)**
 - **Status:** 🟡 CZĘŚCIOWO ROZWIĄZANE
-- **Problem:** Bezpośredni dostęp do domen `https://frontend.local.dev/`
+- **Problem:** Bezpośredni dostęp do domen `https://frontend.dynadock.lan/`
 - **Przyczyna:** SNI configuration w Caddy potrzebuje dopracowania
 
 ## 🔧 Zaimplementowane rozwiązania (ale wciąż nie działają)
 
 ### ✅ /etc/hosts entries
 ```bash
-127.0.0.1 frontend.local.dev backend.local.dev postgres.local.dev redis.local.dev mailhog.local.dev
+127.0.0.1 frontend.dynadock.lan backend.dynadock.lan postgres.dynadock.lan redis.dynadock.lan mailhog.dynadock.lan
 ```
 
 ### ✅ mkcert certificates
-- Wildcard cert dla `*.local.dev` w `certs/`
+- Wildcard cert dla `*.dynadock.lan` w `certs/`
 - Certificates mounted do Caddy container
 
 ### ✅ Caddy configuration approaches tested
@@ -77,7 +77,7 @@
 - [ ] Start Caddy z prawidłowym port binding
 
 ### Krok 3: Minimalna konfiguracja testowa
-- [ ] Utworzyć prosty Caddyfile tylko dla frontend.local.dev
+- [ ] Utworzyć prosty Caddyfile tylko dla frontend.dynadock.lan
 - [ ] Test pojedynczego serwisu przed dodaniem innych
 - [ ] Zweryfikować SSL handshake
 
@@ -89,14 +89,14 @@
 ## 📋 Test checklist (wszystkie muszą przejść)
 
 ### TCP connectivity
-- [ ] `echo > /dev/tcp/frontend.local.dev/443` - success
-- [ ] `echo > /dev/tcp/mailhog.local.dev/443` - success  
-- [ ] `echo > /dev/tcp/backend.local.dev/443` - success
+- [ ] `echo > /dev/tcp/frontend.dynadock.lan/443` - success
+- [ ] `echo > /dev/tcp/mailhog.dynadock.lan/443` - success  
+- [ ] `echo > /dev/tcp/backend.dynadock.lan/443` - success
 
 ### HTTPS requests
-- [ ] `curl -I https://frontend.local.dev/` - 200 OK
-- [ ] `curl -I https://mailhog.local.dev/` - 200 OK
-- [ ] `curl -I https://backend.local.dev/` - 200 OK
+- [ ] `curl -I https://frontend.dynadock.lan/` - 200 OK
+- [ ] `curl -I https://mailhog.dynadock.lan/` - 200 OK
+- [ ] `curl -I https://backend.dynadock.lan/` - 200 OK
 
 ### Browser access (headless)
 - [ ] Playwright test: no SSL errors
@@ -127,8 +127,8 @@ http://localhost:8000/        # Frontend
 http://localhost:8025/        # MailHog
 
 # HTTPS via localhost with Host headers  
-curl -H "Host: frontend.local.dev" https://localhost/
-curl -H "Host: mailhog.local.dev" https://localhost/
+curl -H "Host: frontend.dynadock.lan" https://localhost/
+curl -H "Host: mailhog.dynadock.lan" https://localhost/
 
 # HTTPS health check
 https://localhost/health

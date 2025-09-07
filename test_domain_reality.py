@@ -96,9 +96,9 @@ def main():
     console.print(Panel("[bold red]DynaDock REALITY CHECK - What Actually Works?[/bold red]"))
     
     domains_to_test = [
-        ("https://frontend.local.dev/", "frontend.local.dev", 443),
-        ("https://backend.local.dev/", "backend.local.dev", 443), 
-        ("https://mailhog.local.dev/", "mailhog.local.dev", 443),
+        ("https://frontend.dynadock.lan/", "frontend.dynadock.lan", 443),
+        ("https://backend.dynadock.lan/", "backend.dynadock.lan", 443), 
+        ("https://mailhog.dynadock.lan/", "mailhog.dynadock.lan", 443),
         ("https://localhost/health", "localhost", 443),
         ("http://localhost:8000", "localhost", 8000),
         ("http://localhost:8001", "localhost", 8001),
@@ -172,9 +172,9 @@ def main():
         console.print("2. Verify Caddy is listening on correct ports:")
         console.print("   sudo netstat -tlnp | grep ':80\\|:443'")
         console.print("3. Check /etc/hosts entries:")
-        console.print("   grep 'local.dev' /etc/hosts")
+        console.print("   grep 'dynadock.lan' /etc/hosts")
         console.print("4. Test certificate trust:")
-        console.print("   openssl s_client -connect frontend.local.dev:443 -servername frontend.local.dev")
+        console.print("   openssl s_client -connect frontend.dynadock.lan:443 -servername frontend.dynadock.lan")
         
         return False
     else:

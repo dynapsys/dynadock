@@ -22,7 +22,7 @@ def test_build_block_formatting(tmp_path: Path):
     # Intentionally unsorted keys to verify sorting by service name
     ip_map_unsorted = {"web": ip_map["web"], "db": ip_map["db"], "api": ip_map["api"]}
 
-    block = hm._build_block(ip_map_unsorted, domain="local.dev")
+    block = hm._build_block(ip_map_unsorted, domain="dynadock.lan")
 
     # Block should contain markers and sorted entries
     lines = [l for l in block.strip().splitlines()]
@@ -33,9 +33,9 @@ def test_build_block_formatting(tmp_path: Path):
     host_lines = lines[1:-1]
     # Expected sorted order: api, db, web
     assert host_lines == [
-        f"{ip_map['api']}\tapi.local.dev",
-        f"{ip_map['db']}\tdb.local.dev",
-        f"{ip_map['web']}\tweb.local.dev",
+        f"{ip_map['api']}\tapi.dynadock.lan",
+        f"{ip_map['db']}\tdb.dynadock.lan",
+        f"{ip_map['web']}\tweb.dynadock.lan",
     ]
 
 
@@ -54,7 +54,7 @@ def test_apply_writes_temp_and_calls_sudo(monkeypatch, tmp_path: Path):
     monkeypatch.setattr("dynadock.hosts_manager.subprocess.run", fake_run)
 
     ip_map = {"api": "172.20.0.10", "web": "172.20.0.11"}
-    hm.apply(ip_map, domain="local.dev")
+    hm.apply(ip_map, domain="dynadock.lan")
 
     # Ensure sudo bash -c was called once
     assert any(c[:3] == ["sudo", "bash", "-c"] for c in calls)

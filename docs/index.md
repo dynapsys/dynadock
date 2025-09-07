@@ -4,7 +4,7 @@ Welcome to **DynaDock** – a dynamic Docker Compose orchestrator that eliminate
 
 * 🚀 Automatic *port allocation* – no more conflicts
 * 🔒 One-command *TLS/HTTPS* via Caddy
-* 🏷️ Local *sub-domains* like `api.local.dev`
+* 🏷️ Local *sub-domains* like `api.dynadock.lan`
 * 📄 Automatic *.env* generation for every service
 
 ---
@@ -20,7 +20,7 @@ uv tool install dynadock
 dynadock up --enable-tls
 ```
 
-Browse to `https://api.local.dev` (or the services defined in your compose file) – certificates are created automatically.
+Browse to `https://api.dynadock.lan` (or the services defined in your compose file) – certificates are created automatically.
 
 ---
 

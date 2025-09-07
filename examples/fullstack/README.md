@@ -17,11 +17,11 @@ dynadock up
 
 ## 📋 Dostępne serwisy
 
-- **Frontend**: https://frontend.local.dev - Aplikacja React
-- **Backend**: https://backend.local.dev - REST API
-- **PostgreSQL**: https://postgres.local.dev - Baza danych
-- **Redis**: https://redis.local.dev - Cache i sesje
-- **MailHog**: https://mailhog.local.dev - Email testing (UI na porcie 8025)
+- **Frontend**: https://frontend.dynadock.lan - Aplikacja React
+- **Backend**: https://backend.dynadock.lan - REST API
+- **PostgreSQL**: https://postgres.dynadock.lan - Baza danych
+- **Redis**: https://redis.dynadock.lan - Cache i sesje
+- **MailHog**: https://mailhog.dynadock.lan - Email testing (UI na porcie 8025)
 
 ## 🧪 Funkcjonalności
 

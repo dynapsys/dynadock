@@ -26,8 +26,8 @@ def main():
     # Test cases
     test_cases = [
         ('http://localhost:8000', 'Localhost HTTP'),
-        ('https://frontend.local.dev', 'Frontend HTTPS'),  
-        ('https://mailhog.local.dev', 'MailHog HTTPS')
+        ('https://frontend.dynadock.lan', 'Frontend HTTPS'),  
+        ('https://mailhog.dynadock.lan', 'MailHog HTTPS')
     ]
     
     results = []

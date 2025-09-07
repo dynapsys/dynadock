@@ -92,11 +92,11 @@ def repair_hosts_file() -> str:
     """Add missing /etc/hosts entries"""
     try:
         hosts_entries = [
-            "127.0.0.1 frontend.local.dev",
-            "127.0.0.1 backend.local.dev", 
-            "127.0.0.1 mailhog.local.dev",
-            "127.0.0.1 postgres.local.dev",
-            "127.0.0.1 redis.local.dev"
+            "127.0.0.1 frontend.dynadock.lan",
+            "127.0.0.1 backend.dynadock.lan", 
+            "127.0.0.1 mailhog.dynadock.lan",
+            "127.0.0.1 postgres.dynadock.lan",
+            "127.0.0.1 redis.dynadock.lan"
         ]
         
         # Check current hosts file

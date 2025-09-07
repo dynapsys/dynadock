@@ -42,9 +42,9 @@ class TestNetworkAnalyzer:
         
     def test_analyze_domain_url(self):
         """Test analyzing domain URL"""
-        result = analyze_network_connectivity('https://frontend.local.dev/')
+        result = analyze_network_connectivity('https://frontend.dynadock.lan/')
         
-        assert result['hostname'] == 'frontend.local.dev'
+        assert result['hostname'] == 'frontend.dynadock.lan'
         assert result['port'] == 443
         assert result['scheme'] == 'https'
         assert 'dns_resolution' in result
