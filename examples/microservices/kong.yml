@@ -1,0 +1,91 @@
+_format_version: "3.0"
+
+services:
+  - name: auth-service
+    url: http://auth-service:3001
+    routes:
+      - name: auth-route
+        paths:
+          - /auth
+        strip_path: true
+
+  - name: user-service
+    url: http://user-service:3002
+    routes:
+      - name: user-route
+        paths:
+          - /users
+        strip_path: false
+
+  - name: product-service
+    url: http://product-service:3003
+    routes:
+      - name: product-route
+        paths:
+          - /products
+        strip_path: false
+      - name: product-search-route
+        paths:
+          - /search
+        strip_path: false
+      - name: product-categories-route
+        paths:
+          - /categories
+        strip_path: false
+
+  - name: order-service
+    url: http://order-service:3004
+    routes:
+      - name: order-route
+        paths:
+          - /orders
+        strip_path: false
+
+  - name: notification-service
+    url: http://notification-service:3005
+    routes:
+      - name: notification-route
+        paths:
+          - /notifications
+        strip_path: true
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - X-Auth-Token
+        - X-Request-ID
+      credentials: true
+      max_age: 3600
+
+  - name: rate-limiting
+    config:
+      minute: 100
+      hour: 1000
+      policy: local
+
+  - name: request-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+
+  - name: prometheus
+    config:
+      per_consumer: false
