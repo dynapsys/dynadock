@@ -1,0 +1,778 @@
+{
+  "metadata": {
+    "timestamp": "2025-09-07T13:21:17.038204",
+    "test_duration": "Started at 2025-09-07 13:21:17",
+    "domains_tested": 5,
+    "success_rate": 40.0
+  },
+  "results": {
+    "successful_tests": 2,
+    "failed_tests": 3,
+    "issues_found": [
+      "https://frontend.local.dev/: Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.local.dev/\nCall log:\n  - navigating to \"https://frontend.local.dev/\", waiting until \"domcontentloaded\"\n",
+      "https://mailhog.local.dev/: Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.local.dev/\nCall log:\n  - navigating to \"https://mailhog.local.dev/\", waiting until \"domcontentloaded\"\n",
+      "https://localhost/health: Page.goto: net::ERR_CONNECTION_REFUSED at https://localhost/health\nCall log:\n  - navigating to \"https://localhost/health\", waiting until \"domcontentloaded\"\n"
+    ],
+    "network_issues": [
+      "https://frontend.local.dev/: TCP connection failed",
+      "https://mailhog.local.dev/: TCP connection failed",
+      "https://localhost/health: TCP connection failed"
+    ]
+  },
+  "system_analysis": {
+    "containers": [
+      {
+        "Command": "\"/docker-entrypoint.\u2026\"",
+        "CreatedAt": "2025-09-07 12:07:46 +0200 CEST",
+        "ID": "f0a5e4c12467",
+        "Image": "fullstack-frontend",
+        "Labels": "com.docker.compose.config-hash=ab5406fe45c6769aa2d7b10b244c5e01fb05b7d82a14d13c2e54b37d11944c38,com.docker.compose.container-number=1,com.docker.compose.depends_on=backend:service_healthy:false,com.docker.compose.image=sha256:073a9783ccf919c2e98304219c11e63aa89713b6e79a49074961cb636090b177,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/tom/github/dynapsys/dynadock/examples/fullstack/docker-compose.yaml,com.docker.compose.project.working_dir=/home/tom/github/dynapsys/dynadock/examples/fullstack,com.docker.compose.project=fullstack,com.docker.compose.replace=5d051386a784ccdef6b30d087be3fb38d000576af2824b084cf9deb566ad739b,com.docker.compose.service=frontend,com.docker.compose.version=2.20.3,maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>",
+        "LocalVolumes": "0",
+        "Mounts": "",
+        "Names": "fullstack-frontend-1",
+        "Networks": "fullstack_default",
+        "Platform": null,
+        "Ports": "0.0.0.0:8000->80/tcp, [::]:8000->80/tcp",
+        "RunningFor": "About an hour ago",
+        "Size": "0B",
+        "State": "running",
+        "Status": "Up About an hour (healthy)"
+      },
+      {
+        "Command": "\"docker-entrypoint.s\u2026\"",
+        "CreatedAt": "2025-09-07 01:18:10 +0200 CEST",
+        "ID": "55c624e6a201",
+        "Image": "fullstack-backend",
+        "Labels": "com.docker.compose.config-hash=0998179a49f6ad118c4e7f9b9ef32f390521db9c617bc095b19a7c07cf3c42fe,com.docker.compose.container-number=1,com.docker.compose.depends_on=postgres:service_healthy:false,redis:service_healthy:false,com.docker.compose.image=sha256:8624b5d527c6c4dd8548372bac0f08b6a3272139997f8e9e3bf0c208ac222598,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/tom/github/dynapsys/dynadock/examples/fullstack/docker-compose.yaml,com.docker.compose.project.working_dir=/home/tom/github/dynapsys/dynadock/examples/fullstack,com.docker.compose.project=fullstack,com.docker.compose.service=backend,com.docker.compose.version=2.20.3",
+        "LocalVolumes": "0",
+        "Mounts": "",
+        "Names": "fullstack-backend-1",
+        "Networks": "fullstack_default",
+        "Platform": null,
+        "Ports": "0.0.0.0:8001->5000/tcp, [::]:8001->5000/tcp",
+        "RunningFor": "12 hours ago",
+        "Size": "0B",
+        "State": "running",
+        "Status": "Up About an hour (healthy)"
+      },
+      {
+        "Command": "\"docker-entrypoint.s\u2026\"",
+        "CreatedAt": "2025-09-07 01:18:10 +0200 CEST",
+        "ID": "35d2edfc43e6",
+        "Image": "postgres:14-alpine",
+        "Labels": "com.docker.compose.config-hash=bbc03f31ac13483c31ef4a15f8041b0d5ae1ea8f7d54a2d9e6b0d73cc71f563b,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:942fda8d333f0b977a0deaff993479168b6ce04327d255ac713dd87ca6d547f1,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/tom/github/dynapsys/dynadock/examples/fullstack/docker-compose.yaml,com.docker.compose.project.working_dir=/home/tom/github/dynapsys/dynadock/examples/fullstack,com.docker.compose.project=fullstack,com.docker.compose.service=postgres,com.docker.compose.version=2.20.3",
+        "LocalVolumes": "1",
+        "Mounts": "fullstack_post\u2026",
+        "Names": "fullstack-postgres-1",
+        "Networks": "fullstack_default",
+        "Platform": null,
+        "Ports": "0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp",
+        "RunningFor": "12 hours ago",
+        "Size": "0B",
+        "State": "running",
+        "Status": "Up About an hour (healthy)"
+      },
+      {
+        "Command": "\"MailHog\"",
+        "CreatedAt": "2025-09-07 01:18:10 +0200 CEST",
+        "ID": "c57a35d22cff",
+        "Image": "mailhog/mailhog",
+        "Labels": "com.docker.compose.config-hash=0c968bf68aec858ac2f09b7ae19d5e1cf5f138477f9cf90a4afae502f0cb603c,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:4de68494cd0dbcbc141beb755eedce4d328ab10b2d1061d74c2489e0af5f28a9,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/tom/github/dynapsys/dynadock/examples/fullstack/docker-compose.yaml,com.docker.compose.project.working_dir=/home/tom/github/dynapsys/dynadock/examples/fullstack,com.docker.compose.project=fullstack,com.docker.compose.service=mailhog,com.docker.compose.version=2.20.3",
+        "LocalVolumes": "0",
+        "Mounts": "",
+        "Names": "fullstack-mailhog-1",
+        "Networks": "fullstack_default",
+        "Platform": null,
+        "Ports": "0.0.0.0:1025->1025/tcp, [::]:1025->1025/tcp, 0.0.0.0:8025->8025/tcp, [::]:8025->8025/tcp",
+        "RunningFor": "12 hours ago",
+        "Size": "0B",
+        "State": "running",
+        "Status": "Up About an hour"
+      },
+      {
+        "Command": "\"docker-entrypoint.s\u2026\"",
+        "CreatedAt": "2025-09-07 01:18:10 +0200 CEST",
+        "ID": "49bc99f7ed7d",
+        "Image": "redis:7-alpine",
+        "Labels": "com.docker.compose.config-hash=ff1ad8fd540a26a6262b17cf3e39c411827144bdc4ed5512b16eba636618e37b,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:f218e591b571a4129aa29a8566b597d849fba21af7be853d31b03122b20db5e9,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/tom/github/dynapsys/dynadock/examples/fullstack/docker-compose.yaml,com.docker.compose.project.working_dir=/home/tom/github/dynapsys/dynadock/examples/fullstack,com.docker.compose.project=fullstack,com.docker.compose.service=redis,com.docker.compose.version=2.20.3",
+        "LocalVolumes": "1",
+        "Mounts": "fullstack_redi\u2026",
+        "Names": "fullstack-redis-1",
+        "Networks": "fullstack_default",
+        "Platform": null,
+        "Ports": "0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp",
+        "RunningFor": "12 hours ago",
+        "Size": "0B",
+        "State": "running",
+        "Status": "Up About an hour (healthy)"
+      }
+    ],
+    "ports_listening": {
+      "0.0.0.0:8025": "-",
+      "0.0.0.0:8000": "-",
+      ":::8025": "-",
+      ":::8000": "-"
+    },
+    "hosts_file": {
+      "9": "127.0.0.1frontend.local.dev",
+      "10": "127.0.0.1backend.local.dev",
+      "11": "127.0.0.1postgres.local.dev",
+      "12": "127.0.0.1redis.local.dev",
+      "13": "127.0.0.1mailhog.local.dev",
+      "15": "127.0.0.1 frontend.local.dev backend.local.dev postgres.local.dev redis.local.dev mailhog.local.dev",
+      "16": "127.0.0.1 frontend.local.dev backend.local.dev postgres.local.dev redis.local.dev mailhog.local.dev"
+    },
+    "processes": []
+  },
+  "network_analysis": {
+    "https://frontend.local.dev/": {
+      "hostname": "frontend.local.dev",
+      "port": 443,
+      "scheme": "https",
+      "tcp_connect": false,
+      "dns_resolution": {
+        "success": true,
+        "ip": "127.0.0.1"
+      },
+      "port_scan": {
+        "80": false,
+        "443": false,
+        "8000": true,
+        "8001": true,
+        "8025": true,
+        "5432": true,
+        "6379": true
+      },
+      "ssl_cert_info": {
+        "error": "[Errno 111] Connection refused"
+      }
+    },
+    "https://mailhog.local.dev/": {
+      "hostname": "mailhog.local.dev",
+      "port": 443,
+      "scheme": "https",
+      "tcp_connect": false,
+      "dns_resolution": {
+        "success": true,
+        "ip": "127.0.0.1"
+      },
+      "port_scan": {
+        "80": false,
+        "443": false,
+        "8000": true,
+        "8001": true,
+        "8025": true,
+        "5432": true,
+        "6379": true
+      },
+      "ssl_cert_info": {
+        "error": "[Errno 111] Connection refused"
+      }
+    },
+    "https://localhost/health": {
+      "hostname": "localhost",
+      "port": 443,
+      "scheme": "https",
+      "tcp_connect": false,
+      "dns_resolution": {
+        "success": true,
+        "ip": "127.0.0.1"
+      },
+      "port_scan": {
+        "80": false,
+        "443": false,
+        "8000": true,
+        "8001": true,
+        "8025": true,
+        "5432": true,
+        "6379": true
+      },
+      "ssl_cert_info": {
+        "error": "[Errno 111] Connection refused"
+      }
+    },
+    "http://localhost:8000": {
+      "hostname": "localhost",
+      "port": 8000,
+      "scheme": "http",
+      "tcp_connect": true,
+      "dns_resolution": {
+        "success": true,
+        "ip": "127.0.0.1"
+      },
+      "port_scan": {
+        "80": false,
+        "443": false,
+        "8000": true,
+        "8001": true,
+        "8025": true,
+        "5432": true,
+        "6379": true
+      },
+      "ssl_cert_info": null
+    },
+    "http://localhost:8025": {
+      "hostname": "localhost",
+      "port": 8025,
+      "scheme": "http",
+      "tcp_connect": true,
+      "dns_resolution": {
+        "success": true,
+        "ip": "127.0.0.1"
+      },
+      "port_scan": {
+        "80": false,
+        "443": false,
+        "8000": true,
+        "8001": true,
+        "8025": true,
+        "5432": true,
+        "6379": true
+      },
+      "ssl_cert_info": null
+    }
+  },
+  "browser_details": {
+    "https://frontend.local.dev/": {
+      "success": false,
+      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://frontend.local.dev/\nCall log:\n  - navigating to \"https://frontend.local.dev/\", waiting until \"domcontentloaded\"\n",
+      "screenshot": "test_screenshots/frontend.local.dev___1757244074_exception.png",
+      "network_requests": [
+        {
+          "url": "https://frontend.local.dev/",
+          "method": "GET",
+          "headers": {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "timestamp": 1757244074.3689585
+        }
+      ],
+      "errors": [
+        "Request failed: https://frontend.local.dev/ - net::ERR_CONNECTION_REFUSED"
+      ],
+      "ssl_errors": []
+    },
+    "https://mailhog.local.dev/": {
+      "success": false,
+      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://mailhog.local.dev/\nCall log:\n  - navigating to \"https://mailhog.local.dev/\", waiting until \"domcontentloaded\"\n",
+      "screenshot": "test_screenshots/mailhog.local.dev___1757244074_exception.png",
+      "network_requests": [
+        {
+          "url": "https://mailhog.local.dev/",
+          "method": "GET",
+          "headers": {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "timestamp": 1757244074.838744
+        }
+      ],
+      "errors": [
+        "Request failed: https://mailhog.local.dev/ - net::ERR_CONNECTION_REFUSED"
+      ],
+      "ssl_errors": []
+    },
+    "https://localhost/health": {
+      "success": false,
+      "error": "Page.goto: net::ERR_CONNECTION_REFUSED at https://localhost/health\nCall log:\n  - navigating to \"https://localhost/health\", waiting until \"domcontentloaded\"\n",
+      "screenshot": "test_screenshots/localhost__health_1757244074_exception.png",
+      "network_requests": [
+        {
+          "url": "https://localhost/health",
+          "method": "GET",
+          "headers": {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "timestamp": 1757244075.378956
+        }
+      ],
+      "errors": [
+        "Request failed: https://localhost/health - net::ERR_CONNECTION_REFUSED"
+      ],
+      "ssl_errors": []
+    },
+    "http://localhost:8000": {
+      "success": true,
+      "status": 200,
+      "title": "DynaDock Fullstack App",
+      "content_length": 899,
+      "load_time": 0.04,
+      "screenshot": "test_screenshots/localhost:8000__1757244075_success.png",
+      "security_info": {
+        "protocol": "http:",
+        "host": "localhost:8000",
+        "origin": "http://localhost:8000",
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+        "cookieEnabled": true,
+        "language": "en-US",
+        "secure": false,
+        "securityState": "not-secure"
+      },
+      "page_analysis": {
+        "hasErrors": false,
+        "hasContent": false,
+        "formCount": 1,
+        "linkCount": 0,
+        "imageCount": 0,
+        "scriptCount": 1
+      },
+      "network_requests": [
+        {
+          "url": "http://localhost:8000/",
+          "method": "GET",
+          "headers": {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "timestamp": 1757244075.879883,
+          "response_status": 200,
+          "response_headers": {
+            "accept-ranges": "bytes",
+            "connection": "keep-alive",
+            "content-length": "524",
+            "content-type": "text/html",
+            "date": "Sun, 07 Sep 2025 11:21:15 GMT",
+            "etag": "\"68bcc231-20c\"",
+            "last-modified": "Sat, 06 Sep 2025 23:22:25 GMT",
+            "server": "nginx/1.29.1"
+          }
+        },
+        {
+          "url": "http://localhost:8000/static/js/main.54047328.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "http://localhost:8000/",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244075.8882504,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "cache-control": "max-age=31536000, public, immutable",
+            "content-encoding": "gzip",
+            "etag": "W/\"68bcc231-315ed\"",
+            "connection": "keep-alive",
+            "expires": "Mon, 07 Sep 2026 11:21:15 GMT",
+            "date": "Sun, 07 Sep 2025 11:21:15 GMT",
+            "content-type": "application/javascript",
+            "last-modified": "Sat, 06 Sep 2025 23:22:25 GMT",
+            "server": "nginx/1.29.1"
+          }
+        },
+        {
+          "url": "http://localhost:8000/static/css/main.7f31b840.css",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "http://localhost:8000/",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244075.8884902,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "cache-control": "max-age=31536000, public, immutable",
+            "content-encoding": "gzip",
+            "etag": "W/\"68bcc231-3a77\"",
+            "connection": "keep-alive",
+            "expires": "Mon, 07 Sep 2026 11:21:15 GMT",
+            "date": "Sun, 07 Sep 2025 11:21:15 GMT",
+            "content-type": "text/css",
+            "last-modified": "Sat, 06 Sep 2025 23:22:25 GMT",
+            "server": "nginx/1.29.1"
+          }
+        }
+      ],
+      "console_logs": [],
+      "errors": [],
+      "ssl_errors": []
+    },
+    "http://localhost:8025": {
+      "success": true,
+      "status": 200,
+      "title": "MailHog",
+      "content_length": 9273,
+      "load_time": 0.22,
+      "screenshot": "test_screenshots/localhost:8025__1757244076_success.png",
+      "security_info": {
+        "protocol": "http:",
+        "host": "localhost:8025",
+        "origin": "http://localhost:8025",
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+        "cookieEnabled": true,
+        "language": "en-US",
+        "secure": false,
+        "securityState": "not-secure"
+      },
+      "page_analysis": {
+        "hasErrors": false,
+        "hasContent": true,
+        "formCount": 2,
+        "linkCount": 7,
+        "imageCount": 2,
+        "scriptCount": 9
+      },
+      "network_requests": [
+        {
+          "url": "http://localhost:8025/",
+          "method": "GET",
+          "headers": {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\""
+          },
+          "timestamp": 1757244076.6508887,
+          "response_status": 200,
+          "response_headers": {
+            "content-type": "text/html; charset=utf-8",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "transfer-encoding": "chunked"
+          }
+        },
+        {
+          "url": "http://localhost:8025/css/jquery-ui-1.10.4-smoothness.css",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6654713,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/css; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/css/bootstrap-3.3.2.min.css",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6658921,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/css; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/css/style.css",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6661475,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/css; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/images/hog.png",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6664002,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "image/png"
+          }
+        },
+        {
+          "url": "http://localhost:8025/images/github.png",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6668818,
+          "response_status": 200,
+          "response_headers": {
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "image/png",
+            "content-length": "1714"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/jquery-1.11.0.min.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6671014,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/jquery-ui-1.10.4.min.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6673021,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/bootstrap-3.3.2.min.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6677816,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/angular-1.3.8.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6684952,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/moment-2.8.4.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.668779,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/filesize-3.1.2.min.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6690066,
+          "response_status": 200,
+          "response_headers": {
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8",
+            "content-length": "1355"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/strutil.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6692472,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/js/controllers.js",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.6695125,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/javascript; charset=utf-8"
+          }
+        },
+        {
+          "url": "http://localhost:8025/fonts/glyphicons-halflings-regular.woff2",
+          "method": "GET",
+          "headers": {
+            "origin": "http://localhost:8025",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "http://localhost:8025/css/bootstrap-3.3.2.min.css",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.7567997,
+          "response_status": 200,
+          "response_headers": {
+            "transfer-encoding": "chunked",
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": ""
+          }
+        },
+        {
+          "url": "http://localhost:8025/api/v2/jim",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "accept": "application/json, text/plain, */*",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.8662062,
+          "response_status": 404,
+          "response_headers": {
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-length": "0"
+          }
+        },
+        {
+          "url": "http://localhost:8025/api/v2/messages?limit=50",
+          "method": "GET",
+          "headers": {
+            "sec-ch-ua-platform": "\"Linux\"",
+            "referer": "",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
+            "accept": "application/json, text/plain, */*",
+            "sec-ch-ua": "\"Chromium\";v=\"136\", \"HeadlessChrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0"
+          },
+          "timestamp": 1757244076.866464,
+          "response_status": 200,
+          "response_headers": {
+            "date": "Sun, 07 Sep 2025 11:21:16 GMT",
+            "content-type": "text/json",
+            "content-length": "42"
+          }
+        }
+      ],
+      "console_logs": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "timestamp": 1757244076.8725934
+        }
+      ],
+      "errors": [],
+      "ssl_errors": []
+    }
+  },
+  "repair_attempts": [
+    "\u2705 All required hosts entries present"
+  ],
+  "statistics": {
+    "total_domains_tested": 5,
+    "successful_tests": 2,
+    "failed_tests": 3,
+    "network_issues": 3,
+    "browser_issues": 3,
+    "screenshots_captured": 5,
+    "repair_attempts": 1
+  },
+  "screenshots": {
+    "directory": "test_screenshots",
+    "count": 5,
+    "files": [
+      "frontend.local.dev___1757244074_exception.png",
+      "mailhog.local.dev___1757244074_exception.png",
+      "localhost__health_1757244074_exception.png",
+      "localhost:8000__1757244075_success.png",
+      "localhost:8025__1757244076_success.png"
+    ]
+  }
+}

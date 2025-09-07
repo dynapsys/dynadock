@@ -24,11 +24,13 @@ CADDYFILE_TEMPLATE = """
     respond /health "OK" 200
 }
 
-{% if enable_tls %}
-:443 {
+# HTTPS Health endpoint
+https://localhost/health {
+    {% if enable_tls %}
     tls /etc/caddy/certs/_wildcard.local.dev+2.pem /etc/caddy/certs/_wildcard.local.dev+2-key.pem
+    {% endif %}
+    respond "OK" 200
 }
-{% endif %}
 
 {% for service, data in services.items() %}
 # ------------------------------

@@ -11,6 +11,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+import logging
 
 from .docker_manager import DockerManager
 from .env_generator import EnvGenerator
@@ -22,10 +23,23 @@ from .utils import find_compose_file
 from dotenv import dotenv_values
 from .preflight import PreflightChecker
 from .hosts_manager import HostsManager
+from .cli_helpers.verification import verify_domain_access
+from .cli_helpers.display import display_running_services, display_success, display_warning, display_error
 
 __all__ = ["cli"]
 
 console = Console()
+
+# Configure enhanced logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('.dynadock/dynadock.log')
+    ]
+)
+logger = logging.getLogger('dynadock')
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
@@ -43,9 +57,24 @@ console = Console()
     default=".env.dynadock",
     help="Path where the generated environment file should be written.",
 )
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Enable verbose logging output.",
+)
 @click.pass_context
-def cli(ctx: click.Context, compose_file: str | None, env_file: str) -> None:
+def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bool) -> None:
     """DynaDock – Dynamic docker-compose orchestrator with TLS & Caddy love."""
+    
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("🔍 Verbose logging enabled")
+    
+    logger.info(f"🚀 DynaDock CLI started - compose_file: {compose_file}, env_file: {env_file}")
+    
+    # Ensure .dynadock directory exists for logs
+    Path('.dynadock').mkdir(exist_ok=True)
     ctx.ensure_object(dict)
     if compose_file is None:
         compose_file = find_compose_file()
@@ -120,81 +149,9 @@ def verify_domain_access(
         pass
     return all_ok, results
 
-def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
-    """Test if a URL is accessible using curl."""
-    try:
-        if access_type == "localhost":
-            time.sleep(1)
-        
-        cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", "--connect-timeout", "3", "-m", "5", url]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
-        
-        if result.returncode == 0:
-            http_code = result.stdout.strip()
-            if http_code and http_code != "000" and int(http_code) < 500:
-                if access_type == "localhost":
-                    console.print(f"  [green]✓[/green] {service}: [green]localhost:{url.split(':')[-1]} is accessible (HTTP {http_code})[/green]")
-                else:
-                    console.print(f"  [green]✓[/green] {service}: [green]{url} is accessible (HTTP {http_code})[/green]")
-                return True
-            else:
-                if access_type == "localhost":
-                    console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{url.split(':')[-1]} returned HTTP {http_code}[/yellow]")
-                elif access_type == "domain":
-                    return False
-        else:
-            if access_type == "domain":
-                return False
-            else:
-                console.print(f"  [red]✗[/red] {service}: [red]{url} is not accessible (curl exit code: {result.returncode})[/red]")
-        return False
-    except subprocess.TimeoutExpired:
-        if access_type == "localhost":
-            console.print(f"  [red]✗[/red] {service}: [red]{url} timed out[/red]")
-        return False
-    except Exception as e:
-        if access_type == "localhost":
-            console.print(f"  [red]✗[/red] {service}: [red]Failed to test {url}: {e}[/red]")
-        return False
+# Functions moved to cli_helpers.verification module
 
-def _display_running_services(
-    allocated_ports: Dict[str, int],
-    domain: str,
-    enable_tls: bool,
-    status_by_service: List[Any] | Dict[str, Tuple[str, str]] | None = None,
-) -> None:
-    """Pretty-print a table with service → port/url mapping."""
-    status_map: Dict[str, Tuple[str, str]] = {}
-    if status_by_service is not None:
-        if isinstance(status_by_service, list):
-            for container in status_by_service:
-                service_lbl = container.labels.get("com.docker.compose.service", "unknown")
-                health = container.attrs.get("State", {}).get("Health", {}).get("Status", "-")
-                status_map[service_lbl] = (container.status, health)
-        else:
-            status_map = status_by_service
-
-    table = Table(title="Running Services", header_style="bold magenta")
-    table.add_column("Service", style="cyan", no_wrap=True)
-    table.add_column("Port", style="green", justify="right")
-    table.add_column("URL", style="yellow")
-    
-    show_status = bool(status_map)
-    if show_status:
-        table.add_column("Status", style="blue")
-        table.add_column("Health", style="magenta")
-
-    for service, port in allocated_ports.items():
-        url = f"{'https' if enable_tls else 'http'}://{service}.{domain}"
-        row = [service, str(port), url]
-        
-        if show_status:
-            status, health = status_map.get(service, ("-", "-"))
-            row.extend([status, health])
-            
-        table.add_row(*row)
-
-    console.print(table)
+# Function moved to cli_helpers.display module
 
 @cli.command()
 @click.option("--domain", "-d", default="local.dev", help="Base domain for sub-domains.")
