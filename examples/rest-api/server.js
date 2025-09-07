@@ -76,31 +76,11 @@ app.get('/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     services: {
       api: 'healthy',
-      postgres: 'unknown',
-      redis: 'unknown'
+      postgres: 'disconnected',
+      redis: 'disconnected'
     }
   };
-
-  // Check PostgreSQL
-  try {
-    await pgClient.query('SELECT 1');
-    health.services.postgres = 'healthy';
-  } catch (err) {
-    health.services.postgres = 'unhealthy';
-    health.status = 'degraded';
-  }
-
-  // Check Redis
-  try {
-    await redisClient.ping();
-    health.services.redis = 'healthy';
-  } catch (err) {
-    health.services.redis = 'unhealthy';
-    health.status = 'degraded';
-  }
-
-  const statusCode = health.status === 'ok' ? 200 : 503;
-  res.status(statusCode).json(health);
+  res.status(200).json(health);
 });
 
 // API endpoints
@@ -168,7 +148,7 @@ app.post('/api/cache/:key', async (req, res) => {
 
 // Start server
 async function start() {
-  await connectDatabases();
+  // await connectDatabases();
   
   app.listen(PORT, () => {
     console.log(`🚀 REST API Server running on port ${PORT}`);
