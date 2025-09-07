@@ -76,3 +76,22 @@ packages = ["src/dynadock"]
 # Duplicate lines will be ignored by pip/uv
 # See Makefile for install command
 # NOTE: We deliberately put dev dependencies here rather than extras to keep pyproject simple
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"] 
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short", 
+    "--strict-markers",
+    "--disable-warnings",
+    "--color=yes"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "docker: Docker-based tests",
+    "slow: Slow running tests"
+]
