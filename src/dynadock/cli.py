@@ -26,6 +26,7 @@ from .preflight import PreflightChecker
 from .hosts_manager import HostsManager
 from .cli_helpers.verification import verify_domain_access, test_url_with_curl
 from .cli_helpers.display import display_running_services, display_success, display_warning, display_error
+from .performance_analyzer import PerformanceAnalyzer
 
 __all__ = ["cli"]
 
@@ -371,7 +372,13 @@ def up(  # noqa: D401
     
     total_duration = time.time() - start_time
     logger.info(f"TIMER: Total 'up' command duration: {total_duration:.2f}s")
-    
+
+    # --- Performance Analysis ---
+    analyzer = PerformanceAnalyzer(project_dir)
+    analysis_report = analyzer.analyze()
+    analyzer.display_report(analysis_report)
+    # --------------------------
+
     if not detach:
         console.print("\n[dim]Press Ctrl+C to stop all services...[/dim]")
         try:
