@@ -134,6 +134,19 @@ def up(  # noqa: D401
     env_file: str = ctx.obj["env_file"]
     project_dir: Path = ctx.obj["project_dir"]
 
+    # --- Timing setup ---
+    start_time = time.time()
+    last_step_time = start_time
+
+    def log_step_duration(step_name: str):
+        nonlocal last_step_time
+        current_time = time.time()
+        duration = current_time - last_step_time
+        logger.info(f"TIMER: Step '{step_name}' finished in {duration:.2f}s")
+        last_step_time = current_time
+    # ------------------
+
+
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     env_generator = EnvGenerator(env_file)
     caddy_config = CaddyConfig(project_dir=str(project_dir), domain=domain, enable_tls=enable_tls)
@@ -165,12 +178,15 @@ def up(  # noqa: D401
         if preflight.warnings:
             console.print("[yellow]\nPreflight warnings:[/yellow]")
             console.print(preflight.pretty())
+        log_step_duration("Preflight checks")
 
         progress.update(task, advance=1, description="Parsing docker-compose file…")
         services = docker_manager.parse_compose()
+        log_step_duration("Parsing docker-compose file")
 
         progress.update(task, advance=1, description="Allocating ports…")
         allocated_ports = docker_manager.allocate_ports(services, start_port)
+        log_step_duration("Allocating ports")
 
         progress.update(task, advance=1, description=f"Setting up networking for domain '{domain}'…")
         dns_ok = True
@@ -235,6 +251,7 @@ def up(  # noqa: D401
         else:
             console.print("[yellow]Using /etc/hosts mode (--manage-hosts specified)[/yellow]")
             dns_ok = False
+        log_step_duration(f"Setting up networking (lan_visible={lan_visible}, manage_hosts={manage_hosts})")
 
         progress.update(task, advance=1, description="Generating environment variables…")
         env_vars = env_generator.generate(
@@ -244,6 +261,7 @@ def up(  # noqa: D401
             enable_tls=enable_tls,
             cors_origins=list(cors_origins),
         )
+        log_step_duration("Generating environment variables")
 
         # Optional hosts fallback (skip for LAN-visible mode as IPs are directly accessible)
         use_hosts = (manage_hosts or (shutil.which("resolvectl") is None) or (not locals().get("dns_ok", True))) and not lan_visible
@@ -256,6 +274,7 @@ def up(  # noqa: D401
                 console.print("[green]✓ /etc/hosts updated[/green]")
             except Exception as he:  # noqa: BLE001
                 console.print(f"[red]Failed to update /etc/hosts: {he}[/red]")
+            log_step_duration("Applying /etc/hosts fallback")
 
         progress.update(task, advance=1, description="Starting Caddy reverse-proxy…")
         caddy_config.generate_minimal()
@@ -274,6 +293,7 @@ def up(  # noqa: D401
                     lan_network_manager.cleanup_all()
             raise click.Abort()
 
+        log_step_duration("Starting Caddy reverse-proxy")
         progress.update(task, advance=1, description="Starting application containers…")
         try:
             docker_manager.up(env_vars, detach=True)
@@ -288,6 +308,7 @@ def up(  # noqa: D401
                     lan_network_manager.cleanup_all()
             raise click.Abort()
         
+        log_step_duration("Starting application containers")
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
         caddy_config.generate(
             services=services,
@@ -298,6 +319,7 @@ def up(  # noqa: D401
             ips=allocated_ips or None,
         )
         caddy_config.reload_caddy()
+        log_step_duration("Configuring reverse-proxy")
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
     
@@ -346,6 +368,9 @@ def up(  # noqa: D401
     
     status_by_service = docker_manager.ps()
     display_running_services(allocated_ports, domain, enable_tls, status_by_service)
+    
+    total_duration = time.time() - start_time
+    logger.info(f"TIMER: Total 'up' command duration: {total_duration:.2f}s")
     
     if not detach:
         console.print("\n[dim]Press Ctrl+C to stop all services...[/dim]")
