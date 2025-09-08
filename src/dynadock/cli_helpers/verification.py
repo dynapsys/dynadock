@@ -13,9 +13,11 @@ console = Console()
 
 
 def verify_domain_access(
-    allocated_ports: Dict[str, int], 
-    domain: str, 
+    allocated_ports: Dict[str, int],
+    domain: str,
     enable_tls: bool = True,
+    retries: int = 3,
+    initial_wait: float = 1.0,
     ip_map: Dict[str, str] | None = None
 ) -> Tuple[bool, Dict[str, Dict[str, bool]]]:
     """
@@ -23,35 +25,44 @@ def verify_domain_access(
     Returns (all_ok, results_dict)
     """
     console.print("\n[bold cyan]Verifying service accessibility...[/bold cyan]")
-    
-    results = {}
-    
-    for service, port in allocated_ports.items():
-        console.print(f"\n[blue]Testing {service}:[/blue]")
-        
-        # Test localhost access
-        localhost_url = f"http://localhost:{port}"
-        localhost_ok = test_url_with_curl(localhost_url, service, "localhost")
-        
-        # Test domain access
-        domain_scheme = "https" if enable_tls else "http"
-        domain_url = f"{domain_scheme}://{service}.{domain}"
-        domain_ok = test_url_with_curl(domain_url, service, "domain")
-        
-        if not domain_ok:
-            console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]{domain_url} is not accessible[/yellow]")
-        
-        results[service] = {
-            "localhost": localhost_ok,
-            "domain": domain_ok
-        }
+    time.sleep(initial_wait)
 
-    all_ok = all((v["domain"] or v["localhost"]) for v in results.values())
+    results = {}
+
+    for attempt in range(retries):
+        all_services_ok = True
+        for service, port in allocated_ports.items():
+            if results.get(service, {}).get("domain") or results.get(service, {}).get("localhost"):
+                continue  # Skip already verified services
+
+            console.print(f"\n[blue]Testing {service} (Attempt {attempt + 1}/{retries}):[/blue]")
+
+            # Test localhost access
+            localhost_url = f"http://localhost:{port}"
+            localhost_ok = test_url_with_curl(localhost_url, service, "localhost")
+
+            # Test domain access
+            domain_scheme = "https" if enable_tls else "http"
+            domain_url = f"{domain_scheme}://{service}.{domain}"
+            domain_ok = test_url_with_curl(domain_url, service, "domain")
+
+            if not domain_ok and not localhost_ok:
+                all_services_ok = False
+
+            results[service] = {"localhost": localhost_ok, "domain": domain_ok}
+
+        if all_services_ok:
+            break
+        if attempt < retries - 1:
+            console.print(f"\n[yellow]Retrying in {initial_wait} seconds...[/yellow]")
+            time.sleep(initial_wait)
+
+    all_ok = all((v.get("domain") or v.get("localhost")) for v in results.values())
     console.print("\n[dim]Verification complete.[/dim]")
-    
+
     # Suggest /etc/hosts entries if domain fails but localhost works
     _suggest_hosts_entries(results, ip_map, domain, all_ok)
-    
+
     return all_ok, results
 
 

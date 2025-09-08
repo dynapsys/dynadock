@@ -74,10 +74,10 @@ class CaddyConfig:
 
     _CONTAINER_NAME = "dynadock-caddy"
 
-    def __init__(self, domain: str, enable_tls: bool = True, project_dir: Path | None = None):
+    def __init__(self, project_dir: str, domain: str, enable_tls: bool = True):
+        self.project_dir = Path(project_dir)
         self.domain = domain
         self.enable_tls = enable_tls
-        self.project_dir = project_dir or Path.cwd()
         self.config_dir = self.project_dir / "caddy_config"
         self.data_dir = self.project_dir / "caddy_data"
         self.caddy_dir = self.project_dir / ".dynadock" / "caddy"
@@ -97,8 +97,10 @@ class CaddyConfig:
         self,
         services: Dict[str, Any],
         ports: Dict[str, int],
+        domain: str,
+        enable_tls: bool,
         cors_origins: List[str],
-        ips: Dict[str, str],
+        ips: Dict[str, str] | None,
     ) -> Path:
         """Render the full Caddyfile template."""
         logger.info(f"🔧 Generating Caddyfile for {len(services)} services")

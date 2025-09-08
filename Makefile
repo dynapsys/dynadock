@@ -132,46 +132,43 @@ test-e2e:
 	$(PY) -m pytest -v tests/test_e2e.py
 
 # Versioning
-version-show:
-	@awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py
+version-show: ## Show the current version
+	@$(UV) run hatch version
 
-version-patch:
-	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
-	IFS='.' read -r major minor patch <<< "$$current_version"; \
-	new_version="$$major.$$minor.$$((patch + 1))"; \
-	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
-	echo "✅ Version updated to $$new_version"
+version-patch: ## Bump the patch version
+	@$(UV) run hatch version patch
 
-version-minor:
-	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
-	IFS='.' read -r major minor patch <<< "$$current_version"; \
-	new_version="$$major.$$((minor + 1)).0"; \
-	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
-	echo "✅ Version updated to $$new_version"
+version-minor: ## Bump the minor version
+	@$(UV) run hatch version minor
 
-version-major:
-	@current_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
-	IFS='.' read -r major minor patch <<< "$$current_version"; \
-	new_version="$$((major + 1)).0.0"; \
-	echo "Bumping version from $$current_version to $$new_version"; \
-	sed -i "s/__version__ = \"$$current_version\"/__version__ = \"$$new_version\"/" src/dynadock/__init__.py; \
-	echo "✅ Version updated to $$new_version"
-
-# Development tools
-dev-setup: install
-	@echo "🔧 Setting up the development environment..."
-	$(PIP) install flake8 black isort
-	@echo "✅ Development environment ready"
+version-major: ## Bump the major version
+	@$(UV) run hatch version major
 
 # Publishing with automatic versioning
-publish: clean version-patch build-dist check-dist
-	@echo "📦 Publishing package to PyPI..."
-	@new_version=$$(awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
-	echo "Publishing version $$new_version"; \
-	$(UV) run --with twine twine upload dist/*; \
-	echo "✅ Version $$new_version published to PyPI"
+publish: ## Automatically bump patch version, build, tag, and publish to PyPI
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "$(RED)Git working directory is not clean. Please commit or stash changes.$(NC)"; \
+		exit 1; \
+	fi
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "$(RED)Not on main branch. Please switch to main before publishing.$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)Bumping patch version...$(NC)"
+	@$(UV) run hatch version patch
+	@NEW_VERSION=v$$(shell awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py);
+	@echo "$(YELLOW)Building and checking distribution...$(NC)"
+	@$(MAKE) build-dist
+	@$(MAKE) check-dist
+	@echo "$(YELLOW)Committing version bump...$(NC)"
+	@git commit -am "chore: Bump version to $$NEW_VERSION"
+	@echo "$(YELLOW)Tagging new version $$NEW_VERSION...$(NC)"
+	@git tag "$$NEW_VERSION"
+	@echo "$(YELLOW)Pushing commit and tags...$(NC)"
+	@git push && git push --tags
+	@echo "$(YELLOW)Publishing to PyPI...$(NC)"
+	@$(UV) run --with twine twine upload dist/*
+	@echo "$(GREEN)✓ Successfully published version $$NEW_VERSION to PyPI!$(NC)"
 
 publish-testpypi: ## Upload package to TestPyPI (requires TESTPYPI_TOKEN env var)
 	uv build

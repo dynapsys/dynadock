@@ -136,10 +136,10 @@ def up(  # noqa: D401
 
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     env_generator = EnvGenerator(env_file)
-    caddy_config = CaddyConfig(project_dir)
+    caddy_config = CaddyConfig(project_dir=str(project_dir), domain=domain, enable_tls=enable_tls)
     network_manager = NetworkManager(project_dir)
     lan_network_manager = LANNetworkManager(project_dir, network_interface) if lan_visible else None
-    dns_manager = DnsManager(project_dir, domain)
+    dns_manager = DnsManager(project_dir, domain or "dynadock.lan")
     hosts_manager = HostsManager(project_dir)
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
@@ -174,11 +174,14 @@ def up(  # noqa: D401
 
         progress.update(task, advance=1, description=f"Setting up networking for domain '{domain}'…")
         dns_ok = True
-        allocated_ips = {}
+        allocated_ips: Dict[str, str] = {}
         
         if lan_visible:
             # Use LAN-visible virtual IPs mode
             console.print("[cyan]Setting up LAN-visible virtual IPs (requires sudo)…[/cyan]")
+            if not lan_network_manager:
+                display_error("LAN network manager not initialized despite --lan-visible flag.")
+                raise click.Abort()
             try:
                 allocated_ips = lan_network_manager.setup_services_lan(services)
                 console.print(f"[green]✓ Created {len(allocated_ips)} LAN-visible IPs[/green]")
@@ -265,7 +268,14 @@ def up(  # noqa: D401
             raise click.Abort()
         
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
-        caddy_config.generate(services, allocated_ports, domain, enable_tls, list(cors_origins), allocated_ips)
+        caddy_config.generate(
+            services=services,
+            ports=allocated_ports,
+            domain=domain,
+            enable_tls=enable_tls,
+            cors_origins=list(cors_origins),
+            ips=allocated_ips or None,
+        )
         caddy_config.reload_caddy()
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
@@ -289,7 +299,14 @@ def up(  # noqa: D401
     else:
         console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
         console.print("[dim]Testing with curl...[/dim]\n")
-        all_ok, results = verify_domain_access(allocated_ports, domain, enable_tls, retries=health_retries, initial_wait=health_wait, ip_map=allocated_ips)
+        all_ok, results = verify_domain_access(
+            allocated_ports=allocated_ports,
+            domain=domain,
+            enable_tls=enable_tls,
+            retries=health_retries,
+            initial_wait=health_wait,
+            ip_map=allocated_ips
+        )
 
     if strict_health and not all_ok:
         failed = [svc for svc, res in results.items() if not (res["domain"] or res["localhost"]) ]
@@ -338,9 +355,9 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
     env_file: str = ctx.obj["env_file"]
 
     docker_manager = DockerManager(compose_file, project_dir, env_file)
-    caddy_config = CaddyConfig(project_dir)
     network_manager = NetworkManager(project_dir)
-    lan_network_manager = LANNetworkManager(project_dir)
+    lan_network_manager = LANNetworkManager(project_dir, None)
+    hosts_manager = HostsManager(project_dir)
 
     if prune:
         remove_volumes = True
@@ -348,9 +365,11 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
 
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
     domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
+    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
+    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
 
-    dns_manager = DnsManager(project_dir, domain)
-    hosts_manager = HostsManager(project_dir)
+    caddy_config = CaddyConfig(project_dir=str(project_dir), domain=domain or "dynadock.lan", enable_tls=enable_tls)
+    dns_manager = DnsManager(project_dir, domain or "dynadock.lan")
 
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
         task = progress.add_task("Stopping services…", total=5)
@@ -365,7 +384,8 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
             console.print("[yellow]Warning: Could not stop local DNS resolver.[/yellow]")
         progress.update(task, advance=1, description="Tearing down networks…")
         try:
-            network_manager.teardown_interfaces(domain)
+            if domain:
+                network_manager.teardown_interfaces(domain)
         except subprocess.CalledProcessError as e:
             console.print(f"\n[bold yellow]Warning: Could not tear down virtual network interfaces.[/bold yellow]")
             console.print(f"[yellow]  Command: {' '.join(e.cmd)}[/yellow]")
@@ -375,10 +395,11 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
         except FileNotFoundError:
             console.print(f"\n[bold red]Error: 'manage_veth.sh' script not found.[/bold red]")
             console.print("[dim]  Please ensure the 'scripts' directory is in the project root.[/dim]")
-        
+
         # Clean up LAN networking
         try:
-            lan_network_manager.cleanup_all()
+            if lan_network_manager:
+                lan_network_manager.cleanup_all()
         except Exception:
             pass  # LAN networking may not have been used
         if remove_hosts:
@@ -425,9 +446,16 @@ def ps(ctx: click.Context) -> None:  # noqa: D401
     ports: Dict[str, int] = {}
     for key, val in env_values.items():
         if key.endswith("_PORT"):
-            ports[key[:-5].lower()] = int(val)
+            if val:
+                try:
+                    ports[key[:-5].lower()] = int(val)
+                except (ValueError, TypeError):
+                    pass
 
-    display_running_services(ports, env_values.get("DYNADOCK_DOMAIN", "dynadock.lan"), env_values.get("DYNADOCK_ENABLE_TLS", "false") == "true", status_map)
+    domain_val = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
+    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
+    enable_tls_val = bool(enable_tls_str and enable_tls_str.lower() == "true")
+    display_running_services(ports, domain_val or "dynadock.lan", enable_tls_val, status_map)
 
 @cli.command()
 @click.pass_context
@@ -462,17 +490,19 @@ def health(ctx: click.Context, stop_on_fail: bool) -> None:  # noqa: D401
         raise SystemExit(1)
 
     domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
-    enable_tls = env_values.get("DYNADOCK_ENABLE_TLS", "false").lower() == "true"
+    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
+    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
     protocol = "https" if enable_tls else "http"
 
     ports: Dict[str, int] = {}
     for key, val in env_values.items():
         if key.endswith("_PORT"):
             service = key[:-5].lower()
-            try:
-                ports[service] = int(val)
-            except ValueError:
-                continue
+            if val:
+                try:
+                    ports[service] = int(val)
+                except (ValueError, TypeError):
+                    continue
 
     if not ports:
         console.print("[red]No service ports found in .env.dynadock.[/red]")
@@ -496,7 +526,8 @@ def health(ctx: click.Context, stop_on_fail: bool) -> None:  # noqa: D401
         if stop_on_fail:
             compose_file: str = ctx.obj["compose_file"]
             project_dir: Path = ctx.obj["project_dir"]
-            docker_manager = DockerManager(compose_file, project_dir)
+            env_file: str = ctx.obj["env_file"]
+            docker_manager = DockerManager(compose_file, project_dir, env_file)
             console.print("[yellow]Stopping services (--stop-on-fail)...[/yellow]")
             try:
                 docker_manager.down()
@@ -513,9 +544,9 @@ def net_diagnose(ctx: click.Context, domain: str) -> None:
     project_dir: Path = ctx.obj["project_dir"]
     env_file: str = ctx.obj["env_file"]
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    domain = env_values.get("DYNADOCK_DOMAIN", domain)
+    domain_str = env_values.get("DYNADOCK_DOMAIN", domain)
 
-    diag = NetworkDiagnostics(project_dir, domain)
+    diag = NetworkDiagnostics(project_dir, domain_str or "dynadock.lan")
     report = diag.diagnose()
     console.print(report)
 
@@ -528,9 +559,9 @@ def net_repair(ctx: click.Context, domain: str) -> None:
     project_dir: Path = ctx.obj["project_dir"]
     env_file: str = ctx.obj["env_file"]
     env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    domain = env_values.get("DYNADOCK_DOMAIN", domain)
+    domain_str = env_values.get("DYNADOCK_DOMAIN", domain)
 
-    diag = NetworkDiagnostics(project_dir, domain)
+    diag = NetworkDiagnostics(project_dir, domain_str or "dynadock.lan")
     actions = diag.repair()
     console.print(actions)
 
@@ -562,7 +593,7 @@ This command will:
         lan_manager = LANNetworkManager(project_dir, interface)
         
         # Check root privileges
-        if not lan_manager.check_root_privileges():
+        if not lan_manager or not lan_manager.check_root_privileges():
             console.print("[red]❌ This command requires sudo privileges[/red]")
             console.print("[dim]Run: sudo dynadock lan-test[/dim]")
             raise click.Abort()
@@ -575,6 +606,9 @@ This command will:
             raise click.Abort()
         
         console.print("[bold blue]🔍 Finding Available IPs[/bold blue]")
+        if not network_base or not cidr:
+            console.print("[red]❌ Network base or CIDR not found.[/red]")
+            raise click.Abort()
         available_ips = lan_manager.find_free_ips(network_base, cidr, num_ips)
         
         if not available_ips:
@@ -584,7 +618,7 @@ This command will:
         console.print(f"[green]✅ Found {len(available_ips)} available IPs[/green]")
         
         # Create test services
-        test_services = {f"test{i+1}": {} for i in range(len(available_ips))}
+        test_services: dict[str, dict] = {f"test{i+1}": {} for i in range(len(available_ips))}
         
         console.print("[bold blue]🚀 Creating LAN-Visible IPs[/bold blue]")
         service_ips = lan_manager.setup_services_lan(test_services)
@@ -675,5 +709,5 @@ def doctor(ctx: click.Context, auto_fix: bool) -> None:
         console.print(pre.run().pretty())
 
     console.print("[bold blue]\nNetwork Diagnostics[/bold blue]")
-    diag = NetworkDiagnostics(project_dir, domain)
+    diag = NetworkDiagnostics(project_dir, domain or "dynadock.lan")
     console.print(diag.diagnose())
