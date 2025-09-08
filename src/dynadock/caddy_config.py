@@ -109,7 +109,7 @@ class CaddyConfig:
         logger.debug(f"🌐 IP mappings: {ips}")
         
         template = Template(CADDYFILE_TEMPLATE)
-        service_data = {s: {"port": p, "ip": ips.get(s)} for s, p in ports.items()}
+        service_data = {s: {"port": p, "ip": ips.get(s) if ips is not None else ""} for s, p in ports.items()}
 
         caddyfile_content = template.render(
             domain=self.domain,
