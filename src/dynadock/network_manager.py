@@ -48,24 +48,31 @@ class NetworkManager:
 
     def _run_helper(self, command: str, ip_map: Dict[str, str]) -> bool:
         """Run the network_helper.py script with sudo, ensuring the correct python environment."""
-        setup_logging()
         try:
             ip_map_json = json.dumps(ip_map)
             python_executable = sys.executable
-            python_path = ":".join(sys.path)
 
-            # Use bash -c to ensure PYTHONPATH is set correctly, even with restrictive sudoers policies.
-            # The command is passed as a single string to the shell.
-            shell_command = f"PYTHONPATH='{python_path}' {python_executable} -m dynadock.network_helper {command} '{ip_map_json}'"
-            
-            cmd = ["sudo", "-n", "bash", "-c", shell_command]
+            # Execute the helper script as a module to ensure it uses the same environment
+            cmd = [
+                "sudo",
+                "-n", # Non-interactive
+                python_executable,
+                "-m",
+                "dynadock.network_helper",
+                command,
+                ip_map_json,
+            ]
 
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=10)
             return True
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Network helper script failed for command '{command}':")
-            logger.error(f"   STDOUT: {e.stdout.strip()}")
-            logger.error(f"   STDERR: {e.stderr.strip()}")
+            # Log the first few lines of stderr for clarity
+            stderr_lines = e.stderr.strip().split('\n')
+            logger.error(f"   STDERR: {' '.join(stderr_lines[:3])}...")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.error(f"❌ Network helper script timed out for command '{command}'.")
             return False
         except Exception as e:
             logger.error(f"❌ An unexpected error occurred while running network helper: {e}")
