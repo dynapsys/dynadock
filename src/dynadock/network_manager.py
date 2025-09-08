@@ -47,12 +47,27 @@ class NetworkManager:
         return ip_map
 
     def _run_helper(self, command: str, ip_map: Dict[str, str]) -> bool:
-        """Run the network_helper.py script with sudo."""
+        """Run the network_helper.py script with sudo, ensuring the correct python environment."""
         setup_logging()
         try:
             ip_map_json = json.dumps(ip_map)
             python_executable = sys.executable
-            cmd = ["sudo", "-E", python_executable, "-m", "dynadock.network_helper", command, ip_map_json]
+            
+            # Construct the PYTHONPATH from the current environment to pass to sudo
+            # This ensures that the virtualenv's site-packages is available.
+            python_path = ":".join(sys.path)
+
+            cmd = [
+                "sudo",
+                "-E",
+                f"PYTHONPATH={python_path}",
+                python_executable,
+                "-m",
+                "dynadock.network_helper",
+                command,
+                ip_map_json
+            ]
+            
             subprocess.run(cmd, check=True, capture_output=True, text=True)
             return True
         except subprocess.CalledProcessError as e:
