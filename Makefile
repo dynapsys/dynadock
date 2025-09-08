@@ -29,7 +29,6 @@ dev: ## Install development dependencies
 	@echo "$(YELLOW)Setting up development environment...$(NC)"
 	$(UV) pip install -e .
 	$(UV) pip install pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests twine
-	@chmod +x scripts/test_runner.sh
 	@echo "$(GREEN)✓ Development environment ready$(NC)"
 
 test: ## Run all tests with coverage
@@ -46,7 +45,6 @@ test-integration: ## Run integration tests only
 
 test-examples: ## Run tests for all example applications
 	@echo "$(YELLOW)Testing example applications...$(NC)"
-	@chmod +x scripts/test_runner.sh
 	@./scripts/test_runner.sh all
 	@echo "$(GREEN)✓ Example tests complete$(NC)"
 
