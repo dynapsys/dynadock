@@ -146,25 +146,18 @@ def up(  # noqa: D401
         task = progress.add_task("Initializing…", total=8)
 
         progress.update(task, advance=1, description="Running preflight checks…")
-        preflight = PreflightChecker(project_dir).run()
-        if preflight.errors:
-            console.print("[red]\nPreflight errors detected:[/red]")
-            console.print(preflight.pretty())
-            if auto_fix:
-                console.print("\n[yellow]Attempting auto-fixes…[/yellow]")
-                actions = PreflightChecker(project_dir).try_autofix()
-                for a in actions:
-                    console.print(f"  - {a}")
-                preflight = PreflightChecker(project_dir).run()
-                if preflight.errors:
-                    console.print("[red]\nStill failing after auto-fix. Aborting.[/red]")
-                    raise click.Abort()
-            else:
-                console.print("[yellow]Run again with --auto-fix or resolve the issues above.[/yellow]")
-                raise click.Abort()
-        if preflight.warnings:
-            console.print("[yellow]\nPreflight warnings:[/yellow]")
-            console.print(preflight.pretty())
+        preflight_checker = PreflightChecker(project_dir)
+        preflight_report = preflight_checker.run()
+
+        if preflight_report.errors:
+            console.print("\n[red]❌ Preflight checks failed with errors:[/red]")
+            console.print(preflight_report.pretty())
+            console.print("\n[yellow]Please resolve the issues above and try again.[/yellow]")
+            raise click.Abort()
+
+        if preflight_report.warnings:
+            console.print("\n[yellow]Preflight checks passed with warnings:[/yellow]")
+            console.print(preflight_report.pretty())
         log_step_duration("Preflight checks")
 
         progress.update(task, advance=1, description="Parsing docker-compose file…")
