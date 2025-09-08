@@ -127,7 +127,7 @@ version-major: ## Bump the major version
 
 # Publishing with automatic versioning
 publish: ## Automatically bump patch version, build, tag, and publish to PyPI
-	@if [ -n "$$(/usr/bin/env git status --porcelain=v1 --untracked-files=no)" ]; then \
+	@if [ "$$(/usr/bin/env git status --porcelain=v1 --untracked-files=no | wc -l)" -ne 0 ]; then \
 		echo "$(RED)Git working directory is not clean. Please commit or stash changes.$(NC)"; \
 		echo "Dirty files:"; \
 		/usr/bin/env git status --porcelain || true; \
