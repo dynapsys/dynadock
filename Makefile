@@ -49,7 +49,7 @@ test-examples: ## Run tests for all example applications
 	@echo "$(GREEN)✓ Example tests complete$(NC)"
 
 test-watch: ## Run tests in watch mode
-	$(UV) run watchmedo shell-command -p '*.py' -c '$(UV) run pytest tests/ -v' -R --directory tests/ --directory src/
+	$(UV) run pytest-watch tests/ -v --config-file .pytest-watch.ini
 
 lint: ## Run linting checks (ruff + mypy)
 	@echo "$(YELLOW)Running linters...$(NC)"
@@ -114,38 +114,38 @@ test-e2e:
 
 # Versioning
 version-show: ## Show the current version
-	@$(UV) run hatch version
+	@hatch version show
 
 version-patch: ## Bump the patch version
-	@$(UV) run hatch version patch
+	@hatch version patch
 
 version-minor: ## Bump the minor version
-	@$(UV) run hatch version minor
+	@hatch version minor
 
 version-major: ## Bump the major version
-	@$(UV) run hatch version major
+	@hatch version major
 
 # Publishing with automatic versioning
 publish: ## Automatically bump patch version, build, tag, and publish to PyPI
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
 		echo "$(RED)Not on main branch. Please switch to main before publishing.$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(YELLOW)Bumping patch version...$(NC)"
-	@$(UV) run hatch version patch
-	@NEW_VERSION=v$$(shell awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py);
-	@echo "$(YELLOW)Building and checking distribution...$(NC)"
-	@$(MAKE) build-dist
-	@$(MAKE) check-dist
-	@echo "$(YELLOW)Committing version bump...$(NC)"
-	@git commit -am "chore: Bump version to $$NEW_VERSION"
-	@echo "$(YELLOW)Tagging new version $$NEW_VERSION...$(NC)"
-	@git tag "$$NEW_VERSION"
-	@echo "$(YELLOW)Pushing commit and tags...$(NC)"
-	@git push && git push --tags
-	@echo "$(YELLOW)Publishing to PyPI...$(NC)"
-	@$(UV) run --with twine twine upload dist/*
-	@echo "$(GREEN)✓ Successfully published version $$NEW_VERSION to PyPI!$(NC)"
+	echo "$(YELLOW)Bumping patch version...$(NC)"
+	hatch version patch
+	NEW_VERSION=v$$(shell awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py);
+	echo "$(YELLOW)Building and checking distribution...$(NC)"
+	$(MAKE) build-dist
+	$(MAKE) check-dist
+	echo "$(YELLOW)Committing version bump...$(NC)"
+	git commit -am "chore: Bump version to $$NEW_VERSION"
+	echo "$(YELLOW)Tagging new version $$NEW_VERSION...$(NC)"
+	git tag "$$NEW_VERSION"
+	echo "$(YELLOW)Pushing commit and tags...$(NC)"
+	git push && git push --tags
+	echo "$(YELLOW)Publishing to PyPI...$(NC)"
+	$(UV) run --with twine twine upload dist/*
+	echo "$(GREEN)✓ Successfully published version $$NEW_VERSION to PyPI!$(NC)"
 
 publish-testpypi: ## Upload package to TestPyPI (requires TESTPYPI_TOKEN env var)
 	uv build
