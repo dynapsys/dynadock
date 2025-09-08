@@ -221,7 +221,7 @@ async def _process_failed_response(page, safe_filename, network_requests, errors
     screenshot_path = SCREENSHOTS_DIR / f"{safe_filename}_error.png"
     try:
         await page.screenshot(path=screenshot_path)
-    except:
+    except Exception:
         pass
     
     return {
@@ -239,7 +239,7 @@ async def _process_exception(page, exception, safe_filename, network_requests, e
     screenshot_path = SCREENSHOTS_DIR / f"{safe_filename}_exception.png"
     try:
         await page.screenshot(path=screenshot_path)
-    except:
+    except Exception:
         pass
     
     return {

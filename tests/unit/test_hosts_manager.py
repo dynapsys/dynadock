@@ -25,7 +25,7 @@ def test_build_block_formatting(tmp_path: Path):
     block = hm._build_block(ip_map_unsorted, domain="dynadock.lan")
 
     # Block should contain markers and sorted entries
-    lines = [l for l in block.strip().splitlines()]
+    lines = [line for line in block.strip().splitlines()]
     assert lines[0] == hm.marker_start
     assert lines[-1] == hm.marker_end
 
