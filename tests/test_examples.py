@@ -283,7 +283,7 @@ class TestExamples:
                                    json=update_data, headers=headers)
             assert response.status_code == 200
             updated_todo = response.json()
-            assert updated_todo["completed"] == True
+            assert updated_todo["completed"]
 
             # Delete todo
             response = requests.delete(f"http://localhost:{backend_port}/api/todos/{todo_id}", headers=headers)

@@ -9,10 +9,9 @@ from typing import Dict, Any, List
 import docker
 
 from .utils import render_template
+from jinja2 import Template
 
 logger = logging.getLogger('dynadock.caddy_config')
-
-from jinja2 import Template
 
 __all__ = ["CaddyConfig"]
 

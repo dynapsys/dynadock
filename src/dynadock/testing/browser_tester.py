@@ -101,7 +101,7 @@ async def test_domain_headless(url: str, timeout: int = 10, verbose: bool = Fals
             )
             await browser.close()
             return result
-        except:
+        except Exception:
             return {
                 'success': False,
                 'error': f"Browser setup failed: {str(e)}",

@@ -26,7 +26,7 @@ def check_system_status() -> Dict[str, Any]:
                 if line.strip():
                     try:
                         status['containers'].append(json.loads(line))
-                    except:
+                    except Exception:
                         pass
         else:
             status['containers'] = [{'error': 'No containers running or Docker not accessible'}]

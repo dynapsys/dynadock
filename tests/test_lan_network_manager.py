@@ -232,8 +232,7 @@ class TestLANNetworkManager:
         """Test IP tracking save and load functionality"""
         lan_manager.virtual_ips = [("192.168.1.100", "eth0:test", "test_service")]
         
-        with patch('builtins.open', mock.mock_open()) as mock_file, \
-             patch('json.dump') as mock_json_dump, \
+        with patch('builtins.open'), patch('json.dump') as mock_json_dump, \
              patch('json.load') as mock_json_load:
             
             # Test save

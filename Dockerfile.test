@@ -2,44 +2,44 @@
 # A dedicated Dockerfile for running the full test suite, including network operations.
 FROM python:3.11-slim
 
-# 1. Install system dependencies for testing
-# - sudo: for privileged operations
-# - docker.io: to get the docker client CLI
-# - iproute2: for the 'ip' command used in network scripts
-# - lsof: for checking port usage
-# - curl, git, gcc: basic build tools
+# 1. Install system dependencies for testing (as root)
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     sudo \
     docker.io \
     iproute2 \
     lsof \
+    make \
     curl \
     ca-certificates \
     gcc \
     git && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Create a non-root user 'tester' and grant passwordless sudo
+# 2. Install uv package manager and make it globally available (as root)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
+# 3. Set up the application directory and copy files (as root)
+WORKDIR /app
+COPY . .
+
+# 4. Install all Python dependencies into the system environment (as root)
+RUN uv pip install --system -e .
+RUN uv pip install --system pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests twine
+
+# 5. Make scripts executable (as root)
+RUN chmod +x scripts/*.sh
+
+# 6. Create a non-root user 'tester' and grant passwordless sudo
 RUN useradd -m -s /bin/bash tester && \
     echo "tester ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-# 3. Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
+# 7. Change ownership of the app directory to the new user
+RUN chown -R tester:tester /app
 
-# 4. Switch to the tester user
+# 8. Switch to the non-root user for subsequent commands
 USER tester
-WORKDIR /home/tester/dynadock
-
-# 5. Copy project files and set correct ownership
-COPY --chown=tester:tester . .
-
-# 6. Install all development and runtime dependencies
-RUN uv pip install -e .
-RUN uv pip install pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests twine
-
-# 7. Make scripts executable
-RUN chmod +x scripts/*.sh
+WORKDIR /app
 
 CMD ["/bin/bash"]

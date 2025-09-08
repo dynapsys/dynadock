@@ -24,7 +24,7 @@ from .utils import find_compose_file
 from dotenv import dotenv_values
 from .preflight import PreflightChecker
 from .hosts_manager import HostsManager
-from .cli_helpers.verification import verify_domain_access
+from .cli_helpers.verification import verify_domain_access, test_url_with_curl
 from .cli_helpers.display import display_running_services, display_success, display_warning, display_error
 
 __all__ = ["cli"]
@@ -88,70 +88,6 @@ def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bo
     ctx.obj["env_file"] = env_file
     ctx.obj["project_dir"] = compose_path.parent
 
-def verify_domain_access(
-    allocated_ports: Dict[str, int],
-    domain: str,
-    enable_tls: bool,
-    *,
-    retries: int = 2,
-    initial_wait: float = 1.0,
-    ip_map: Dict[str, str] | None = None,
-) -> Tuple[bool, Dict[str, Dict[str, bool]]]:
-    """Verify that services are accessible. Returns (all_ok, per-service results).
-
-    Each service is checked against both domain and localhost URLs with a few
-    retries using exponential backoff. Detailed curl results are printed.
-    """
-    protocol = "https" if enable_tls else "http"
-
-    console.print("[dim]Checking service accessibility...[/dim]")
-    results: Dict[str, Dict[str, bool]] = {}
-
-    for service, port in allocated_ports.items():
-        service_domain = f"{service}.{domain}"
-        domain_url = f"{protocol}://{service_domain}"
-        localhost_url = f"http://localhost:{port}"
-
-        ok_domain = False
-        ok_local = False
-        wait = max(0.1, initial_wait)
-
-        logger.info(f"🔍 Verifying service access: {service} on {service_domain}:{port}")
-        
-        for attempt in range(retries + 1):
-            if not ok_domain:
-                logger.debug(f"🌐 Testing domain URL: {domain_url} (attempt {attempt + 1})")
-                ok_domain = test_url_with_curl(domain_url, service, "domain")
-            if not ok_local:
-                ok_local = test_url_with_curl(localhost_url, service, "localhost")
-            if ok_domain or ok_local:
-                break
-            time.sleep(wait)
-            wait = min(5.0, wait * 1.6)
-
-        results[service] = {"domain": ok_domain, "localhost": ok_local}
-
-    all_ok = all((v["domain"] or v["localhost"]) for v in results.values())
-    console.print("\n[dim]Verification complete.[/dim]")
-    # Suggest /etc/hosts entries if domain fails but localhost works
-    try:
-        if not all_ok and ip_map:
-            console.print("\n[yellow]Suggestions for domain access:[/yellow]")
-            any_suggest = False
-            for svc, res in results.items():
-                if (not res.get("domain")) and res.get("localhost"):
-                    ip = ip_map.get(svc)
-                    if ip:
-                        console.print(f"  - Add to /etc/hosts: [cyan]{ip}\t{svc}.{domain}[/cyan]")
-                        any_suggest = True
-            if any_suggest:
-                if shutil.which("resolvectl") is None:
-                    console.print("  - Your system lacks 'resolvectl' – consider using '--manage-hosts' on 'up'.")
-                else:
-                    console.print("  - Ensure local DNS is running or use '--manage-hosts' as a fallback.")
-    except Exception:
-        pass
-    return all_ok, results
 
 # Functions moved to cli_helpers.verification module
 
@@ -371,7 +307,7 @@ def up(  # noqa: D401
         raise click.Abort()
     
     status_by_service = docker_manager.ps()
-    _display_running_services(allocated_ports, domain, enable_tls, status_by_service)
+    display_running_services(allocated_ports, domain, enable_tls, status_by_service)
     
     if not detach:
         console.print("\n[dim]Press Ctrl+C to stop all services...[/dim]")
@@ -385,7 +321,7 @@ def up(  # noqa: D401
             try:
                 lan_cleanup_manager = LANNetworkManager(project_dir)
                 lan_cleanup_manager.cleanup_all()
-            except:
+            except Exception:
                 pass  # LAN networking may not have been used
             console.print("\n[green]✓ All services stopped.[/green]")
 
@@ -491,7 +427,7 @@ def ps(ctx: click.Context) -> None:  # noqa: D401
         if key.endswith("_PORT"):
             ports[key[:-5].lower()] = int(val)
 
-    _display_running_services(ports, env_values.get("DYNADOCK_DOMAIN", "dynadock.lan"), env_values.get("DYNADOCK_ENABLE_TLS", "false") == "true", status_map)
+    display_running_services(ports, env_values.get("DYNADOCK_DOMAIN", "dynadock.lan"), env_values.get("DYNADOCK_ENABLE_TLS", "false") == "true", status_map)
 
 @cli.command()
 @click.pass_context
@@ -680,7 +616,7 @@ This command will:
                 else:
                     console.print(f"   ❌ {service} ({ip}) - Not reachable")
                     all_reachable = False
-            except:
+            except Exception:
                 console.print(f"   ⚠️ {service} ({ip}) - Test failed")
                 all_reachable = False
         
@@ -712,7 +648,7 @@ This command will:
         console.print(f"[red]❌ Test failed: {e}[/red]")
         try:
             lan_manager.cleanup_all()
-        except:
+        except Exception:
             pass
         raise click.Abort()
 

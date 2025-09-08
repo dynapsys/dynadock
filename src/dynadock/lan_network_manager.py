@@ -224,7 +224,7 @@ class LANNetworkManager:
             cmd = f"ip link show {self.interface} | grep ether | awk '{{print $2}}'"
             mac = subprocess.check_output(cmd, shell=True, text=True).strip()
             return mac if mac else None
-        except:
+        except Exception:
             return None
     
     def _update_arp_cache(self, ip_address: str) -> None:
@@ -234,7 +234,7 @@ class LANNetworkManager:
             if mac:
                 cmd = f"arp -s {ip_address} {mac}"
                 subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL)
-        except:
+        except Exception:
             pass
     
     def setup_services_lan(self, services: Dict[str, Any]) -> Dict[str, str]:
@@ -284,7 +284,7 @@ class LANNetworkManager:
         try:
             # Remove IP from interface
             cmd = f"ip addr del {ip_address}/{cidr} dev {self.interface}"
-            result = subprocess.run(cmd, shell=True, capture_output=True)
+            subprocess.run(cmd, shell=True, capture_output=True)
             
             # Remove from ARP cache
             subprocess.run(f"arp -d {ip_address}", shell=True, stderr=subprocess.DEVNULL)
