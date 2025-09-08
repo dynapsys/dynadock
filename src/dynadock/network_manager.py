@@ -59,7 +59,8 @@ class NetworkManager:
 
             cmd = [
                 "sudo",
-                "-E",
+                "-n",  # Non-interactive, fail if password is required
+                "-E",  # Preserve environment
                 f"PYTHONPATH={python_path}",
                 python_executable,
                 "-m",
