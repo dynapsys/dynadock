@@ -185,6 +185,27 @@ def up(  # noqa: D401
             try:
                 allocated_ips = lan_network_manager.setup_services_lan(services)
                 console.print(f"[green]✓ Created {len(allocated_ips)} LAN-visible IPs[/green]")
+                # Detect cross-host IP/port conflicts before proceeding
+                if allocated_ips:
+                    conflicts = lan_network_manager.detect_conflicts(allocated_ips, allocated_ports)
+                    if conflicts:
+                        console.print("\n[bold red]❌ LAN IP/port conflicts detected[/bold red]")
+                        table = Table("Service", "IP", "Port", "Issue")
+                        for svc, info in conflicts.items():
+                            ip = allocated_ips.get(svc, "-")
+                            port = allocated_ports.get(svc, 80)
+                            issues = []
+                            if info.get("ip_in_use_by_other_host"):
+                                mac = info.get("remote_mac", "?")
+                                issues.append(f"IP owned by other host (MAC {mac})")
+                            if info.get("port_in_use_by_other_host"):
+                                issues.append("Port in use on other host")
+                            if info.get("port_open"):
+                                issues.append("Port already open at IP")
+                            table.add_row(svc, ip, str(port), "; ".join(issues) or "Unknown")
+                        console.print(table)
+                        console.print("[yellow]Hint: choose different IPs or ports, or stop the conflicting host.[/yellow]")
+                        raise click.Abort()
                 # No DNS needed - direct IP access
                 dns_ok = True
             except Exception as e:
@@ -574,140 +595,155 @@ def net_repair(ctx: click.Context, domain: str) -> None:
 def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> None:
     """Test LAN-visible networking functionality (requires sudo)."""
     project_dir: Path = ctx.obj["project_dir"]
-    
-    console.print("""
-[bold cyan]🌐 DynaDock LAN-Visible Networking Test[/bold cyan]
+    lan_manager = LANNetworkManager(project_dir, interface)
 
-This command will:
-1. Check root privileges (required)
-2. Detect network configuration
-3. Find available IP addresses in your LAN
-4. Create virtual IPs visible to all devices on the network
-5. Start test HTTP servers on those IPs
-6. Test connectivity and provide access URLs
+    console.print("[bold cyan]🌐 DynaDock LAN-Visible Networking Test[/bold cyan]")
+    console.print("[yellow]⚠️ Requires sudo privileges to create virtual IPs[/yellow]")
 
-[yellow]⚠️  Requires sudo privileges to create virtual network interfaces[/yellow]
-    """)
-    
-    try:
-        lan_manager = LANNetworkManager(project_dir, interface)
-        
-        # Check root privileges
-        if not lan_manager or not lan_manager.check_root_privileges():
-            console.print("[red]❌ This command requires sudo privileges[/red]")
-            console.print("[dim]Run: sudo dynadock lan-test[/dim]")
-            raise click.Abort()
-        
-        console.print("[bold blue]📡 Network Analysis[/bold blue]")
-        current_ip, network_base, cidr, broadcast = lan_manager.get_network_details()
-        
-        if not current_ip:
-            console.print("[red]❌ Could not detect network configuration[/red]")
-            raise click.Abort()
-        
-        console.print("[bold blue]🔍 Finding Available IPs[/bold blue]")
-        if not network_base or not cidr:
-            console.print("[red]❌ Network base or CIDR not found.[/red]")
-            raise click.Abort()
-        available_ips = lan_manager.find_free_ips(network_base, cidr, num_ips)
-        
-        if not available_ips:
-            console.print("[red]❌ No available IP addresses found[/red]")
-            raise click.Abort()
-        
-        console.print(f"[green]✅ Found {len(available_ips)} available IPs[/green]")
-        
-        # Create test services
-        test_services: dict[str, dict] = {f"test{i+1}": {} for i in range(len(available_ips))}
-        
-        console.print("[bold blue]🚀 Creating LAN-Visible IPs[/bold blue]")
-        service_ips = lan_manager.setup_services_lan(test_services)
-        
-        if not service_ips:
-            console.print("[red]❌ Failed to create LAN-visible IPs[/red]")
-            raise click.Abort()
-        
-        # Create port mapping for test
-        port_map = {service: port + i for i, service in enumerate(service_ips.keys())}
-        
-        console.print("[bold green]✅ LAN-Visible Test Services Created![/bold green]")
-        console.print("\n[bold cyan]🌐 Access URLs (from ANY device on your network):[/bold cyan]")
-        
-        service_urls = lan_manager.get_service_urls(service_ips, port_map)
-        for service, url in service_urls.items():
-            console.print(f"   🔗 {service}: [link]{url}[/link]")
-        
-        console.print("\n[bold blue]🧪 Testing Connectivity[/bold blue]")
-        # Note: Since we're not actually starting HTTP servers in this test,
-        # we'll just test that the IPs are reachable via ping
-        all_reachable = True
-        for service, ip in service_ips.items():
-            try:
-                import subprocess
-                result = subprocess.run(f"ping -c 1 {ip}", shell=True, capture_output=True, timeout=2)
-                if result.returncode == 0:
-                    console.print(f"   ✅ {service} ({ip}) - Reachable")
-                else:
-                    console.print(f"   ❌ {service} ({ip}) - Not reachable")
-                    all_reachable = False
-            except Exception:
-                console.print(f"   ⚠️ {service} ({ip}) - Test failed")
-                all_reachable = False
-        
-        if all_reachable:
-            console.print("\n[bold green]🎉 All test IPs are reachable![/bold green]")
-            console.print("[dim]💡 You can now use --lan-visible with 'dynadock up' for real services[/dim]")
-        else:
-            console.print("\n[yellow]⚠️ Some IPs are not reachable - check network configuration[/yellow]")
-        
-        console.print(f"\n[bold cyan]📋 Usage Example:[/bold cyan]")
-        console.print(f"[dim]# Start your services with LAN-visible networking:[/dim]")
-        console.print(f"sudo dynadock up --lan-visible")
-        if interface:
-            console.print(f"sudo dynadock up --lan-visible --network-interface {interface}")
-        
-        console.print(f"\n[yellow]⚠️ Cleaning up test IPs in 10 seconds...[/yellow]")
-        console.print("[dim]Press Ctrl+C to clean up immediately[/dim]")
-        
-        try:
-            import time
-            time.sleep(10)
-        except KeyboardInterrupt:
-            console.print("\n[dim]Cleaning up...[/dim]")
-        
-        lan_manager.cleanup_all()
-        console.print("[green]✅ Test cleanup completed[/green]")
-        
-    except Exception as e:
-        console.print(f"[red]❌ Test failed: {e}[/red]")
-        try:
-            lan_manager.cleanup_all()
-        except Exception:
-            pass
+    if not lan_manager.check_root_privileges():
+        console.print("[red]❌ This command requires sudo privileges[/red]")
+        console.print("[dim]Run: sudo dynadock lan-test[/dim]")
         raise click.Abort()
 
+    console.print("[bold blue]📡 Network Analysis[/bold blue]")
+    current_ip, network_base, cidr, broadcast = lan_manager.get_network_details()
+    if not current_ip or not network_base or not cidr:
+        console.print("[red]❌ Could not detect network configuration[/red]")
+        raise click.Abort()
 
-@cli.command(name="doctor")
-@click.option("--auto-fix", is_flag=True, help="Attempt automatic fixes (DNS cache, stale containers)")
+    console.print("[bold blue]🔍 Finding Available IPs[/bold blue]")
+    available_ips = lan_manager.find_free_ips(network_base, cidr, num_ips)
+    if not available_ips:
+        console.print("[red]❌ No available IP addresses found[/red]")
+        raise click.Abort()
+    console.print(f"[green]✅ Found {len(available_ips)} available IPs[/green]")
+
+    test_services: dict[str, dict] = {f"test{i+1}": {} for i in range(len(available_ips))}
+    try:
+        service_ips = lan_manager.setup_services_lan(test_services)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to create LAN-visible IPs: {e}[/red]")
+        raise click.Abort()
+    if not service_ips:
+        console.print("[red]❌ Failed to create LAN-visible IPs[/red]")
+        raise click.Abort()
+
+    port_map = {service: port + i for i, service in enumerate(service_ips.keys())}
+    console.print("[bold green]✅ LAN-Visible Test Services Created![/bold green]")
+    service_urls = lan_manager.get_service_urls(service_ips, port_map)
+    for service, url in service_urls.items():
+        console.print(f"   🔗 {service}: [link]{url}[/link]")
+
+    console.print("\n[bold blue]🧪 Testing Connectivity[/bold blue]")
+    connectivity_results = lan_manager.test_connectivity(service_ips, port_map)
+    if all(connectivity_results.values()):
+        console.print("\n[bold green]🎉 All test IPs are reachable![/bold green]")
+    else:
+        console.print("\n[yellow]⚠️ Some IPs are not reachable - check network configuration[/yellow]")
+
+    console.print("\n[yellow]⚠️ Cleaning up test IPs in 5 seconds...[/yellow]")
+    try:
+        time.sleep(5)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Cleaning up...[/dim]")
+    finally:
+        lan_manager.cleanup_all()
+        console.print("[green]✅ Test cleanup completed[/green]")
+
+
+@cli.command(name="check-conflicts")
+@click.option("--lan-visible", is_flag=True, help="Check conflicts for LAN-visible mode (cross-host IP/port)")
+@click.option("--start-port", "-p", default=8000, type=int, help="Starting port for allocation")
+@click.option("--network-interface", "-i", help="Network interface to use for LAN-visible check (auto-detected if not specified)")
 @click.pass_context
-def doctor(ctx: click.Context, auto_fix: bool) -> None:
-    """Run preflight and network diagnostics and optionally auto-fix issues."""
-    project_dir: Path = ctx.obj["project_dir"]
+def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, network_interface: str) -> None:
+    """Dry-run: detect potential IP/port conflicts before 'up' (no IPs are added)."""
+    compose_file: str = ctx.obj["compose_file"]
     env_file: str = ctx.obj["env_file"]
-    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
+    project_dir: Path = ctx.obj["project_dir"]
 
-    pre = PreflightChecker(project_dir)
-    report = pre.run()
-    console.print("[bold blue]\nPreflight Check[/bold blue]")
-    console.print(report.pretty())
-    if report.errors and auto_fix:
-        console.print("[yellow]\nAttempting auto-fix...[/yellow]")
-        for a in pre.try_autofix():
-            console.print(f"  - {a}")
-        console.print("\nPost-fix preflight status:")
-        console.print(pre.run().pretty())
+    docker_manager = DockerManager(compose_file, project_dir, env_file)
+    services = docker_manager.parse_compose()
+    if not services:
+        console.print("[red]No services found in compose file.[/red]")
+        raise SystemExit(1)
 
-    console.print("[bold blue]\nNetwork Diagnostics[/bold blue]")
-    diag = NetworkDiagnostics(project_dir, domain or "dynadock.lan")
-    console.print(diag.diagnose())
+    allocated_ports = docker_manager.allocate_ports(services, start_port)
+
+    console.print("\n[bold blue]🔎 Checking for potential conflicts (dry-run)...[/bold blue]")
+
+    if lan_visible:
+        # LAN-visible: propose candidate IPs without configuring them
+        lan_network_manager = LANNetworkManager(project_dir, network_interface)
+        current_ip, network_base, cidr, broadcast = lan_network_manager.get_network_details()
+        if not network_base or not cidr:
+            console.print("[red]Could not detect network details for LAN-visible check.[/red]")
+            raise SystemExit(2)
+
+        service_names = list(services.keys())
+        needed = len(service_names)
+        candidate_ips = lan_network_manager.find_free_ips(network_base, cidr, needed)
+
+        if len(candidate_ips) < needed:
+            console.print(f"[yellow]Warning: Only found {len(candidate_ips)} candidate IPs for {needed} services.[/yellow]")
+
+        # Map services to candidate IPs (best-effort)
+        service_ip_map = {svc: candidate_ips[i] for i, svc in enumerate(service_names) if i < len(candidate_ips)}
+
+        if not service_ip_map:
+            console.print("[red]No candidate IPs available to check for conflicts.[/red]")
+            raise SystemExit(2)
+
+        # Proactively stimulate ARP entries to improve remote MAC detection
+        for ip in service_ip_map.values():
+            try:
+                import subprocess as _sub
+                _sub.run(f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2)
+                _sub.run(f"arping -c 1 -w 1 {ip}", shell=True, capture_output=True, timeout=2)
+            except Exception:
+                pass
+
+        conflicts = lan_network_manager.detect_conflicts(service_ip_map, allocated_ports)
+        if conflicts:
+            console.print("\n[bold red]❌ Potential conflicts detected[/bold red]")
+            table = Table("Service", "IP (candidate)", "Port", "Issue")
+            for svc, info in conflicts.items():
+                ip = service_ip_map.get(svc, "-")
+                port = allocated_ports.get(svc, 80)
+                issues = []
+                if info.get("ip_in_use_by_other_host"):
+                    mac = info.get("remote_mac", "?")
+                    issues.append(f"IP owned by other host (MAC {mac})")
+                if info.get("port_in_use_by_other_host"):
+                    issues.append("Port in use on other host")
+                if info.get("port_open"):
+                    issues.append("Port already open at IP")
+                table.add_row(svc, ip, str(port), "; ".join(issues) or "Unknown")
+            console.print(table)
+            console.print("[yellow]Tip: rerun with different start port or ensure other hosts use different IP ranges.[/yellow]")
+            raise SystemExit(3)
+
+        console.print("[green]✓ No conflicts detected for LAN-visible mode.[/green]")
+        raise SystemExit(0)
+
+    # Non-LAN: check local port availability only (cross-host conflicts not applicable)
+    console.print("[dim]LAN-visible flag not provided; checking only local port availability...[/dim]")
+    import socket as _socket
+    busy = []
+    for svc, port in allocated_ports.items():
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        s.settimeout(0.1)
+        try:
+            if s.connect_ex(("127.0.0.1", port)) == 0:
+                busy.append((svc, port))
+        finally:
+            s.close()
+    if busy:
+        console.print("[bold red]\n❌ Local ports already in use[/bold red]")
+        table = Table("Service", "Port")
+        for svc, port in busy:
+            table.add_row(svc, str(port))
+        console.print(table)
+        raise SystemExit(4)
+    console.print("[green]✓ Local ports appear free.[/green]")
+    raise SystemExit(0)

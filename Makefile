@@ -34,12 +34,7 @@ dev: ## Install development dependencies
 
 test: ## Run all tests with coverage
 	@echo "$(YELLOW)Running tests...$(NC)"
-	@if command -v uv >/dev/null 2>&1; then \
-		uv run pytest tests/ -v --cov=src/dynadock --cov-report=term-missing --cov-report=html; \
-	else \
-		python3 -c 'import sys; import importlib.util; sys.exit(0 if importlib.util.find_spec("pytest") else 1)' || pip3 install -q pytest pytest-cov requests pytest-timeout; \
-		python3 -m pytest tests/ -v --cov=src/dynadock --cov-report=term-missing --cov-report=html; \
-	fi
+	@bash ./scripts/run_pytests.sh
 	@$(MAKE) test-examples
 	@echo "$(GREEN)✓ All tests complete$(NC)"
 
@@ -80,26 +75,12 @@ docs-serve: ## Serve documentation locally at http://localhost:8000
 
 clean: ## Clean all build, cache, and temporary files (including root-owned)
 	@echo "$(YELLOW)Cleaning build artifacts and temporary files...$(NC)"
-	# Stop any running examples to release file locks
-	@$(MAKE) example-clean
-	# Remove standard build/cache files
-	rm -rf build/ dist/ *.egg-info .coverage htmlcov/ .pytest_cache/
-	find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name '*.pyc' -delete 2>/dev/null || true
-	# Forcefully remove all DynaDock generated files and directories, using sudo for root-owned ones
-	@echo "$(YELLOW)Cleaning DynaDock generated files (may require sudo)...$(NC)"
-	@find . -type d -name ".dynadock" -exec sudo rm -rf {} + 2>/dev/null || true
-	@find . -type d -name "caddy_data" -exec sudo rm -rf {} + 2>/dev/null || true
-	@find . -type d -name "caddy_config" -exec sudo rm -rf {} + 2>/dev/null || true
-	@find . -type f -name ".env.dynadock" -exec rm -f {} + 2>/dev/null || true
-	@find . -type f -name ".dynadock_ip_map.json" -exec rm -f {} + 2>/dev/null || true
-	@find . -type f -name "ip_map.env" -exec rm -f {} + 2>/dev/null || true
+	@bash ./scripts/examples_clean.sh
+	@bash ./scripts/clean_artifacts.sh
 	@echo "$(GREEN)✓ Clean complete$(NC)"
 
 docker-test: ## Run integration tests inside Docker
-	docker-compose -f tests/fixtures/docker-compose.test.yaml up -d
-	$(UV) run pytest tests/integration/ -v -m docker
-	docker-compose -f tests/fixtures/docker-compose.test.yaml down -v
+	@bash ./scripts/docker_test.sh
 
 security: ## Run security scanners (bandit & safety)
 	$(UV) run bandit -r src/dynadock
@@ -200,10 +181,7 @@ update-deps: ## Upgrade dependencies to latest versions
 	$(UV) pip install -e . --upgrade
 
 free-port-80: ## Free up port 80 for Caddy
-	@echo "$(YELLOW)Freeing port 80...$(NC)"
-	@sudo lsof -t -i :80 -sTCP:LISTEN | xargs -r sudo kill -9 || true
-	@docker ps --filter "publish=80" --format "{{.ID}}" | xargs -r docker stop || true
-	@echo "$(GREEN)✓ Port 80 is now free$(NC)"
+	@bash ./scripts/free_port_80.sh
 
 example-simple: ## Run the simple-web example
 	@echo "$(YELLOW)Starting simple-web example...$(NC)"
@@ -218,13 +196,7 @@ example-fullstack: ## Run the fullstack example
 	cd examples/fullstack && dynadock up --enable-tls
 
 example-clean: ## Clean all example Docker resources
-	@echo "$(YELLOW)Cleaning example resources...$(NC)"
-	@for dir in examples/*/; do \
-		if [ -f "$$dir/docker-compose.yaml" ]; then \
-			cd "$$dir" && dynadock down -v 2>/dev/null || true; \
-		fi; \
-	done
-	@echo "$(GREEN)✓ Examples cleaned$(NC)"
+	@bash ./scripts/examples_clean.sh
 
 dynadock-up: ## Start DynaDock with current docker-compose.yaml
 	@echo "$(YELLOW)Starting DynaDock services...$(NC)"

@@ -10,7 +10,8 @@ import sys
 import os
 
 # Add project root to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../'))
+project_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(project_root))
 
 from src.dynadock.testing.network_analyzer import analyze_network_connectivity
 from src.dynadock.testing.system_checker import check_system_status, get_docker_status

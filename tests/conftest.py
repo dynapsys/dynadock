@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 
 import docker
 import pytest
+from dynadock.lan_network_manager import LANNetworkManager
 
 # ---------------------------------------------------------------------------
 # Test path setup – make sure `src/` is importable when tests are invoked from
@@ -83,3 +84,14 @@ def cleanup_docker(docker_client):  # noqa: ANN001 – dynamic fixture
             docker_client.volumes.get(volume_id).remove(force=True)  # type: ignore[attr-defined]
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Additional fixtures for cross-class reuse
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def lan_manager(tmp_path):
+    """Provide a default LANNetworkManager with interface detection patched."""
+    with patch.object(LANNetworkManager, '_auto_detect_interface', return_value='eth0'):
+        return LANNetworkManager(tmp_path)

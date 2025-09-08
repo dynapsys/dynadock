@@ -22,16 +22,44 @@ logger = logging.getLogger('dynadock.lan_network')
 class LANNetworkManager:
     """Manages virtual IPs visible across the entire local network"""
     
+    class _TrackingFile:
+        """Patch-friendly wrapper around a Path used for tracking file ops.
+
+        Allows tests to patch `exists` and `unlink` at the instance level,
+        while still behaving like a path for open()/unlink().
+        """
+        def __init__(self, path: Path):
+            self._path = path
+
+        # Path-like support for builtins.open()
+        def __fspath__(self) -> str:  # pragma: no cover - thin wrapper
+            return str(self._path)
+
+        def __getattr__(self, name: str):  # pragma: no cover - delegation helper
+            # Delegate unknown attributes to the underlying Path instance
+            return getattr(self._path, name)
+
+        def exists(self) -> bool:
+            return self._path.exists()
+
+        def unlink(self, missing_ok: bool = False) -> None:
+            try:
+                self._path.unlink(missing_ok=missing_ok)
+            except TypeError:  # Python < 3.8 compatibility guard
+                if self._path.exists() or not missing_ok:
+                    self._path.unlink()
+
     def __init__(self, project_dir: Path, interface: Optional[str] = None):
         self.project_dir = project_dir
+        # Initialize error handler BEFORE any method that might log errors
+        self.error_handler = ErrorHandler()
         self.interface = interface or self._auto_detect_interface()
         self.virtual_ips = []
         self.arp_announced = []
-        self.error_handler = ErrorHandler()
         
         # Ensure project dir exists and create tracking files
         self.project_dir.mkdir(exist_ok=True)
-        self.ip_tracking_file = self.project_dir / ".dynadock_lan_ips.json"
+        self.ip_tracking_file = LANNetworkManager._TrackingFile(self.project_dir / ".dynadock_lan_ips.json")
         
         logger.info(f"🌐 LANNetworkManager initialized for interface: {self.interface}")
         logger.debug(f"📁 Project directory: {project_dir}")
@@ -56,7 +84,7 @@ class LANNetworkManager:
                 raise DynaDockNetworkError("No suitable network interface found")
                 
         except subprocess.CalledProcessError as e:
-            self.error_handler.handle_subprocess_error(e, "detecting network interface")
+            logger.warning(f"⚠️ Failed detecting network interface via system command: {e}. Using 'eth0' fallback")
             return "eth0"  # Final fallback
     
     def _interface_exists(self, interface: str) -> bool:
@@ -99,10 +127,12 @@ class LANNetworkManager:
                 
                 return str(ip), str(network.network_address), cidr, str(network.broadcast_address)
             
-            raise DynaDockNetworkError(f"Could not parse network information for {self.interface}")
+            # Gracefully handle unparsable output
+            logger.warning(f"⚠️ Could not parse network information for {self.interface}")
+            return None, None, None, None
             
         except subprocess.CalledProcessError as e:
-            self.error_handler.handle_subprocess_error(e, f"getting network details for {self.interface}")
+            logger.warning(f"⚠️ Failed to get network details for {self.interface}: {e}")
             return None, None, None, None
     
     def find_free_ips(self, base_network: str, cidr: str, num_ips: int = 3, start_range: int = 100) -> List[str]:
@@ -193,10 +223,10 @@ class LANNetworkManager:
             return True
             
         except subprocess.CalledProcessError as e:
-            self.error_handler.handle_subprocess_error(e, f"adding virtual IP {ip_address}")
+            logger.error(f"❌ Failed to add virtual IP {ip_address}: {e}")
             return False
         except Exception as e:
-            self.error_handler.handle_error(e, f"configuring virtual IP {ip_address}")
+            logger.error(f"❌ Unexpected error configuring virtual IP {ip_address}: {e}")
             return False
     
     def _announce_arp(self, ip_address: str) -> None:
@@ -319,8 +349,7 @@ class LANNetworkManager:
                 self.remove_virtual_ip(ip_address)
         
         # Clear tracking file
-        if self.ip_tracking_file.exists():
-            self.ip_tracking_file.unlink()
+        self.ip_tracking_file.unlink(missing_ok=True)
         
         self.virtual_ips.clear()
         self.arp_announced.clear()
@@ -346,14 +375,11 @@ class LANNetworkManager:
             json.dump(tracking_data, f, indent=2)
     
     def _load_ip_tracking(self) -> Dict[str, Any]:
-        """Load IP tracking information from file"""
-        if not self.ip_tracking_file.exists():
-            return {}
-        
+        """Load IP tracking information from file (graceful if missing/corrupt)."""
         try:
             with open(self.ip_tracking_file, 'r') as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (json.JSONDecodeError, IOError, FileNotFoundError):
             return {}
     
     def refresh_arp_announcements(self) -> None:
@@ -362,6 +388,67 @@ class LANNetworkManager:
         for ip, _, _ in self.virtual_ips:
             self._update_arp_cache(ip)
             self._announce_arp(ip)
+    
+    def _get_remote_mac(self, ip_address: str) -> Optional[str]:
+        """Resolve the MAC address currently associated with an IP (via ip neigh/arp).
+
+        Returns the MAC in lowercase if found, otherwise None.
+        """
+        try:
+            out = subprocess.check_output(
+                f"ip neigh show {ip_address}", shell=True, text=True
+            ).strip()
+            m = re.search(r"lladdr\s+([0-9a-f:]{17})", out, flags=re.IGNORECASE)
+            if m:
+                return m.group(1).lower()
+        except subprocess.CalledProcessError:
+            pass
+        # Fallback to arp
+        try:
+            out = subprocess.check_output(
+                f"arp -n {ip_address}", shell=True, text=True, stderr=subprocess.DEVNULL
+            ).strip().lower()
+            m = re.search(r"\bat\s+([0-9a-f:]{17})\b", out)
+            if m:
+                return m.group(1)
+        except subprocess.CalledProcessError:
+            pass
+        return None
+
+    def _is_port_open(self, ip_address: str, port: int, timeout: float = 1.0) -> bool:
+        """Check if a TCP port is open on a given IP with a short timeout."""
+        try:
+            with socket.create_connection((ip_address, port), timeout=timeout):
+                return True
+        except Exception:
+            return False
+
+    def detect_conflicts(self, service_ip_map: Dict[str, str], port_map: Dict[str, int]) -> Dict[str, Dict[str, Any]]:
+        """Detect IP/port conflicts on the LAN for the given service IP/port map.
+
+        A conflict is reported when:
+        - The IP resolves to a MAC different from our interface MAC (i.e. owned by another host)
+        - The target (ip, port) appears open on a different host
+
+        Returns a mapping: service -> conflict details dict.
+        """
+        conflicts: Dict[str, Dict[str, Any]] = {}
+        local_mac = (self._get_interface_mac() or "").lower()
+        for service, ip in service_ip_map.items():
+            info: Dict[str, Any] = {}
+            remote_mac = self._get_remote_mac(ip)
+            if remote_mac and local_mac and remote_mac != local_mac:
+                info["ip_in_use_by_other_host"] = True
+                info["remote_mac"] = remote_mac
+            port = port_map.get(service, 80)
+            if self._is_port_open(ip, port, timeout=1.0):
+                if info.get("ip_in_use_by_other_host"):
+                    info["port_in_use_by_other_host"] = True
+                else:
+                    info["port_open"] = True
+            if info:
+                conflicts[service] = info
+        return conflicts
     
     def get_service_urls(self, service_ip_map: Dict[str, str], port_map: Dict[str, int]) -> Dict[str, str]:
         """Generate service URLs for LAN access"""
