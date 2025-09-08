@@ -101,7 +101,7 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
             http_code_str = output[-3:]
             body = output[:-3].strip()
 
-            if http_code_str.isdigit() and int(http_code_str) < 500 and body:
+            if http_code_str.isdigit() and 200 <= int(http_code_str) < 300 and body:
                 http_code = int(http_code_str)
                 if access_type == "localhost":
                     port = url.split(':')[-1]

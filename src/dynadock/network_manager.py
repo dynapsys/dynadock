@@ -67,9 +67,7 @@ class NetworkManager:
             return True
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Network helper script failed for command '{command}':")
-            # Log the first few lines of stderr for clarity
-            stderr_lines = e.stderr.strip().split('\n')
-            logger.error(f"   STDERR: {' '.join(stderr_lines[:3])}...")
+            logger.error(f"   STDERR:\n{e.stderr.strip()}")
             return False
         except subprocess.TimeoutExpired:
             logger.error(f"❌ Network helper script timed out for command '{command}'.")
