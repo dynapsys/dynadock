@@ -71,20 +71,25 @@ class LANNetworkManager:
         """Auto-detect the active network interface"""
         try:
             # Find the default route interface
-            cmd = "ip route | grep default | awk '{print $5}' | head -1"
-            result = subprocess.check_output(cmd, shell=True, text=True).strip()
+            cmd = ["ip", "route"]
+            result = subprocess.check_output(cmd, shell=False, text=True).strip()
+            lines = result.split("\n")
+            for line in lines:
+                if "default" in line:
+                    parts = line.split()
+                    for i, part in enumerate(parts):
+                        if part == "dev" and i + 1 < len(parts):
+                            interface = parts[i + 1]
+                            logger.info(f"🔍 Auto-detected network interface: {interface}")
+                            return interface
 
-            if result:
-                logger.info(f"🔍 Auto-detected network interface: {result}")
-                return result
-            else:
-                # Fallback to common interface names
-                for iface in ["eth0", "enp0s3", "ens33", "wlan0"]:
-                    if self._interface_exists(iface):
-                        logger.info(f"🔍 Using fallback interface: {iface}")
-                        return iface
+            # Fallback to common interface names
+            for iface in ["eth0", "enp0s3", "ens33", "wlan0"]:
+                if self._interface_exists(iface):
+                    logger.info(f"🔍 Using fallback interface: {iface}")
+                    return iface
 
-                raise DynaDockNetworkError("No suitable network interface found")
+            raise DynaDockNetworkError("No suitable network interface found")
 
         except subprocess.CalledProcessError as e:
             logger.warning(
@@ -95,9 +100,8 @@ class LANNetworkManager:
     def _interface_exists(self, interface: str) -> bool:
         """Check if network interface exists"""
         try:
-            subprocess.check_output(
-                f"ip link show {interface}", shell=True, stderr=subprocess.DEVNULL
-            )
+            cmd = ["ip", "link", "show", interface]
+            subprocess.check_output(cmd, shell=False, stderr=subprocess.DEVNULL)
             return True
         except subprocess.CalledProcessError:
             return False
@@ -114,8 +118,8 @@ class LANNetworkManager:
     ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         """Get detailed network information for the interface"""
         try:
-            cmd = f"ip addr show {self.interface}"
-            result = subprocess.check_output(cmd, shell=True, text=True)
+            cmd = ["ip", "addr", "show", self.interface]
+            result = subprocess.check_output(cmd, shell=False, text=True)
 
             # Extract IP and subnet mask
             ip_pattern = r"inet (\d+\.\d+\.\d+\.\d+)/(\d+)"
@@ -196,16 +200,16 @@ class LANNetworkManager:
         """Check if an IP address is available using ping and ARP"""
         try:
             # Quick ping test
-            ping_cmd = f"ping -c 1 -W 1 {ip_address}"
-            ping_result = subprocess.run(ping_cmd, shell=True, capture_output=True)
+            ping_cmd = ["ping", "-c", "1", "-W", "1", ip_address]
+            ping_result = subprocess.run(ping_cmd, shell=False, capture_output=True)
 
             if ping_result.returncode == 0:
                 return False  # IP responds, not available
 
             # Additional ARP check
-            arp_cmd = f"arping -c 1 -w 1 {ip_address}"
+            arp_cmd = ["arping", "-c", "1", "-w", "1", ip_address]
             arp_result = subprocess.run(
-                arp_cmd, shell=True, capture_output=True, stderr=subprocess.DEVNULL
+                arp_cmd, shell=False, capture_output=True, stderr=subprocess.DEVNULL
             )
 
             return arp_result.returncode != 0  # No ARP response = available
@@ -223,8 +227,8 @@ class LANNetworkManager:
             label = f"{self.interface}:{service_name}"
 
             # Add IP alias to interface
-            cmd = f"ip addr add {ip_address}/{cidr} dev {self.interface} label {label}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            cmd = ["ip", "addr", "add", f"{ip_address}/{cidr}", "dev", self.interface, "label", label]
+            result = subprocess.run(cmd, shell=False, capture_output=True, text=True)
 
             if result.returncode != 0:
                 raise DynaDockNetworkError(
@@ -232,12 +236,12 @@ class LANNetworkManager:
                 )
 
             # Enable IP forwarding for better visibility
-            subprocess.run("echo 1 > /proc/sys/net/ipv4/ip_forward", shell=True)
+            subprocess.run(["echo", "1", ">", "/proc/sys/net/ipv4/ip_forward"], shell=False)
 
             # Enable ARP proxy for improved network visibility
             subprocess.run(
-                f"echo 1 > /proc/sys/net/ipv4/conf/{self.interface}/proxy_arp",
-                shell=True,
+                ["echo", "1", ">", f"/proc/sys/net/ipv4/conf/{self.interface}/proxy_arp"],
+                shell=False,
             )
 
             # Announce the new IP via gratuitous ARP
@@ -269,14 +273,14 @@ class LANNetworkManager:
         """Send gratuitous ARP to announce new IP in the network"""
         try:
             # Method 1: Use arping for gratuitous ARP
-            arp_cmd = f"arping -U -I {self.interface} -c 3 {ip_address}"
-            subprocess.run(arp_cmd, shell=True, stderr=subprocess.DEVNULL)
+            arp_cmd = ["arping", "-U", "-I", self.interface, "-c", "3", ip_address]
+            subprocess.run(arp_cmd, shell=False, stderr=subprocess.DEVNULL)
 
             # Method 2: Add to neighbor table for persistence
             mac = self._get_interface_mac()
             if mac:
-                neigh_cmd = f"ip neigh add {ip_address} lladdr {mac} dev {self.interface} nud permanent"
-                subprocess.run(neigh_cmd, shell=True, stderr=subprocess.DEVNULL)
+                neigh_cmd = ["ip", "neigh", "add", ip_address, "lladdr", mac, "dev", self.interface, "nud", "permanent"]
+                subprocess.run(neigh_cmd, shell=False, stderr=subprocess.DEVNULL)
 
             self.arp_announced.append(ip_address)
             logger.debug(f"   📢 Announced ARP for {ip_address}")
@@ -287,9 +291,16 @@ class LANNetworkManager:
     def _get_interface_mac(self) -> Optional[str]:
         """Get the MAC address of the network interface"""
         try:
-            cmd = f"ip link show {self.interface} | grep ether | awk '{{print $2}}'"
-            mac = subprocess.check_output(cmd, shell=True, text=True).strip()
-            return mac if mac else None
+            cmd = ["ip", "link", "show", self.interface]
+            result = subprocess.check_output(cmd, shell=False, text=True)
+            lines = result.split("\n")
+            for line in lines:
+                if "link/ether" in line:
+                    parts = line.split()
+                    for i, part in enumerate(parts):
+                        if part == "link/ether" and i + 1 < len(parts):
+                            mac = parts[i + 1]
+                            return mac
         except Exception:
             return None
 
@@ -298,8 +309,8 @@ class LANNetworkManager:
         try:
             mac = self._get_interface_mac()
             if mac:
-                cmd = f"arp -s {ip_address} {mac}"
-                subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL)
+                cmd = ["arp", "-s", ip_address, mac]
+                subprocess.run(cmd, shell=False, stderr=subprocess.DEVNULL)
         except Exception:
             pass
 
@@ -356,18 +367,18 @@ class LANNetworkManager:
         try:
             setup_logging()  # Re-initialize logging for sudo context
             # Remove IP from interface
-            cmd = f"ip addr del {ip_address}/{cidr} dev {self.interface}"
-            subprocess.run(cmd, shell=True, capture_output=True)
+            cmd = ["ip", "addr", "del", f"{ip_address}/{cidr}", "dev", self.interface]
+            subprocess.run(cmd, shell=False, capture_output=True)
 
             # Remove from ARP cache
             subprocess.run(
-                f"arp -d {ip_address}", shell=True, stderr=subprocess.DEVNULL
+                ["arp", "-d", ip_address], shell=False, stderr=subprocess.DEVNULL
             )
 
             # Remove from neighbor table
             subprocess.run(
-                f"ip neigh del {ip_address} dev {self.interface}",
-                shell=True,
+                ["ip", "neigh", "del", ip_address, "dev", self.interface],
+                shell=False,
                 stderr=subprocess.DEVNULL,
             )
 
@@ -441,7 +452,7 @@ class LANNetworkManager:
         """
         try:
             out = subprocess.check_output(
-                f"ip neigh show {ip_address}", shell=True, text=True
+                ["ip", "neigh", "show", ip_address], shell=False, text=True
             ).strip()
             m = re.search(r"lladdr\s+([0-9a-f:]{17})", out, flags=re.IGNORECASE)
             if m:
@@ -452,8 +463,8 @@ class LANNetworkManager:
         try:
             out = (
                 subprocess.check_output(
-                    f"arp -n {ip_address}",
-                    shell=True,
+                    ["arp", "-n", ip_address],
+                    shell=False,
                     text=True,
                     stderr=subprocess.DEVNULL,
                 )
