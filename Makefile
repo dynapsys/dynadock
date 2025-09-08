@@ -49,7 +49,7 @@ test-examples: ## Run tests for all example applications
 	@echo "$(GREEN)✓ Example tests complete$(NC)"
 
 test-watch: ## Run tests in watch mode
-	$(UV) run watchmedo shell-command -p '*.py' -c '$(UV) run pytest tests/ -v' -R -d tests/ -d src/
+	$(UV) run watchmedo shell-command -p '*.py' -c '$(UV) run pytest tests/ -v' -R --directory tests/ --directory src/
 
 lint: ## Run linting checks (ruff + mypy)
 	@echo "$(YELLOW)Running linters...$(NC)"
@@ -127,6 +127,12 @@ version-major: ## Bump the major version
 
 # Publishing with automatic versioning
 publish: ## Automatically bump patch version, build, tag, and publish to PyPI
+	@echo "--- DIAGNOSTIC: Running git status check ---"
+	@echo "Status output:"
+	@/usr/bin/env git status --porcelain=v1 --untracked-files=no
+	@echo "Line count:"
+	@/usr/bin/env git status --porcelain=v1 --untracked-files=no | wc -l
+	@echo "--- END DIAGNOSTIC ---"
 	@if [ "$$(/usr/bin/env git status --porcelain=v1 --untracked-files=no | wc -l)" -ne 0 ]; then \
 		echo "$(RED)Git working directory is not clean. Please commit or stash changes.$(NC)"; \
 		echo "Dirty files:"; \
