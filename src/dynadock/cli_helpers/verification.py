@@ -13,6 +13,7 @@ console = Console()
 
 
 def verify_domain_access(
+    services_config: Dict[str, Any],
     allocated_ports: Dict[str, int],
     domain: str,
     enable_tls: bool = True,
@@ -32,6 +33,10 @@ def verify_domain_access(
     for attempt in range(retries):
         all_services_ok = True
         for service, port in allocated_ports.items():
+            # Skip services that don't expose ports (e.g., databases)
+            if 'ports' not in services_config.get(service, {}):
+                continue
+
             if results.get(service, {}).get("domain") or results.get(service, {}).get("localhost"):
                 continue  # Skip already verified services
 

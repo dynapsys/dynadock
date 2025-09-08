@@ -337,6 +337,7 @@ def up(  # noqa: D401
         console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
         console.print("[dim]Testing with curl...[/dim]\n")
         all_ok, results = verify_domain_access(
+            services_config=services,
             allocated_ports=allocated_ports,
             domain=domain,
             enable_tls=enable_tls,
