@@ -52,7 +52,8 @@ class NetworkManager:
         try:
             ip_map_json = json.dumps(ip_map)
             # Use sys.executable to ensure we use the same python interpreter
-            cmd = ["sudo", sys.executable, "-m", "dynadock.network_helper", command, ip_map_json]
+            # Use -E to preserve the user's environment, making packages visible
+            cmd = ["sudo", "-E", sys.executable, "-m", "dynadock.network_helper", command, ip_map_json]
             subprocess.run(cmd, check=True, capture_output=True, text=True)
             return True
         except subprocess.CalledProcessError as e:
