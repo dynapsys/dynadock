@@ -4,30 +4,25 @@ import json
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Any
-from importlib.resources import files, as_file
 import logging
+
+from pyroute2 import IPDB, NetNS
+
 from .log_config import setup_logging
 
 logger = logging.getLogger('dynadock.network_manager')
 
+
 class NetworkManager:
-    """Manage virtual network interfaces and IP allocation for services."""
+    """Manage virtual network interfaces and IP allocation for services using pyroute2."""
 
     _SUBNET_BASE = "172.20.0."
     _IP_MAP_JSON = ".dynadock_ip_map.json"
 
     def __init__(self, project_dir: Path):
         self.project_dir = project_dir
-        # Use packaged resource for manage_veth.sh to work from PyPI installs
-        self._manage_veth_resource = files("dynadock.resources").joinpath("manage_veth.sh")
         self.ip_map_json_path = self.project_dir / self._IP_MAP_JSON
-        self.env_dir = self.project_dir / ".dynadock"
-        self.env_dir.mkdir(exist_ok=True)
-        self.ip_map_env_path = self.env_dir / "ip_map.env"
-        
         logger.info(f"🌐 NetworkManager initialized for project: {project_dir}")
-        logger.debug(f"📍 IP map file: {self.ip_map_json_path}")
-        logger.debug(f"📁 Environment directory: {self.env_dir}")
 
     def _load_ip_map(self) -> Dict[str, str]:
         """Load the service-to-IP mapping from file."""
@@ -44,7 +39,6 @@ class NetworkManager:
         with self.ip_map_json_path.open("w") as f:
             json.dump(ip_map, f, indent=2)
 
-
     def allocate_ips(self, services: List[str]) -> Dict[str, str]:
         """Allocate a unique IP address for each service."""
         ip_map = {}
@@ -55,32 +49,59 @@ class NetworkManager:
 
     def setup_interfaces(self, services: Dict[str, Any], domain: str) -> Dict[str, str]:
         """Create virtual network interfaces for all services."""
+        setup_logging()  # Ensure logging is configured in sudo context
         service_names = list(services.keys())
         ip_map = self.allocate_ips(service_names)
 
-        # write env mapping for manage_veth
-        with open(self.ip_map_env_path, 'w') as f:
-            for service, ip in ip_map.items():
-                f.write(f"{service}={ip}\n")
-
-        # Access resource as a real file path and execute via bash
         try:
-            setup_logging() # Re-initialize logging for sudo context
-            with as_file(self._manage_veth_resource) as script_path:
-                subprocess.run(["sudo", "bash", str(script_path), "up", str(self.ip_map_env_path)], check=True)
-        except subprocess.CalledProcessError as e:
-            # If script fails, return empty dict to signal fallback to hosts mode
+            with IPDB() as ipdb:
+                for service, ip in ip_map.items():
+                    veth_name = f"veth_{service}"
+                    peer_name = f"peer_{service}"
+
+                    # Clean up old interfaces first
+                    for iface in [veth_name, peer_name]:
+                        if iface in ipdb.interfaces:
+                            ipdb.interfaces[iface].remove().commit()
+                            logger.debug(f"Removed existing interface: {iface}")
+
+                    # Create veth pair
+                    ipdb.create(ifname=veth_name, kind='veth', peer=peer_name).commit()
+                    logger.info(f"Created veth pair: {veth_name} <-> {peer_name}")
+
+                    # Configure the host-side interface
+                    with ipdb.interfaces[veth_name] as veth:
+                        veth.add_ip(f"{ip}/24")
+                        veth.up()
+                    
+                    # Configure the peer interface (can be moved to a netns later)
+                    with ipdb.interfaces[peer_name] as peer:
+                        peer.up()
+
+            return ip_map
+        except Exception as e:
+            logger.error(f"❌ Failed to set up network interfaces using pyroute2: {e}")
+            # Attempt to clean up on failure
+            self.teardown_interfaces(domain)
             return {}
-        return ip_map
 
     def teardown_interfaces(self, domain: str) -> None:
         """Remove all managed virtual network interfaces."""
+        setup_logging()  # Ensure logging is configured in sudo context
         ip_map = self._load_ip_map()
-        if not self.ip_map_env_path.exists() and not ip_map:
+        if not ip_map:
             return
 
-        setup_logging() # Re-initialize logging for sudo context
-        with as_file(self._manage_veth_resource) as script_path:
-            subprocess.run(["sudo", "bash", str(script_path), "down", str(self.ip_map_env_path)], check=True)
-        
-        self.ip_map_env_path.unlink(missing_ok=True)
+        logger.info("🧹 Tearing down virtual network interfaces...")
+        try:
+            with IPDB() as ipdb:
+                for service in ip_map.keys():
+                    veth_name = f"veth_{service}"
+                    if veth_name in ipdb.interfaces:
+                        ipdb.interfaces[veth_name].remove().commit()
+                        logger.info(f"Removed interface: {veth_name}")
+        except Exception as e:
+            logger.error(f"❌ Failed to tear down network interfaces: {e}")
+
+        # Clean up tracking file
+        self.ip_map_json_path.unlink(missing_ok=True)
