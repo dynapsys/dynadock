@@ -9,11 +9,12 @@ authors = [
 ]
 license = { file = "LICENSE" }
 keywords = [
+    "pyyaml",
+    "rich",
+    "python-dotenv",
     "docker",
-    "compose",
-    "orchestrator",
-    "caddy",
-    "tls",
+    "netifaces",
+    "pyroute2",
     "reverse-proxy",
     "development",
 ]
