@@ -106,8 +106,12 @@ class PreflightChecker:
         try:
             sp = subprocess.run(["sudo", "-n", "true"], check=False)
             if sp.returncode != 0:
-                warnings.append("Passwordless sudo is not available – some features will be degraded (no veth/DNS). Use --manage-hosts fallback.")
-                suggestions.append("Configure passwordless sudo for your user or run commands interactively when prompted.")
+                errors.append("Passwordless sudo is required for network setup. It is not available.")
+                suggestions.append("To enable, run 'sudo visudo' and add the following line, replacing 'your_username' with your actual username:")
+                suggestions.append("    your_username ALL=(ALL) NOPASSWD: /usr/bin/ip, /usr/bin/python3")
+                suggestions.append("Alternatively, use the --manage-hosts flag to run without virtual networking.")
+            else:
+                logger.info("✅ Passwordless sudo is available.")
         except Exception:
             warnings.append("Sudo not available – some features will be degraded (no veth/DNS). Use --manage-hosts fallback.")
 
