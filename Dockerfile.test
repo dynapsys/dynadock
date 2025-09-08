@@ -1,0 +1,45 @@
+# Dockerfile.test
+# A dedicated Dockerfile for running the full test suite, including network operations.
+FROM python:3.11-slim
+
+# 1. Install system dependencies for testing
+# - sudo: for privileged operations
+# - docker.io: to get the docker client CLI
+# - iproute2: for the 'ip' command used in network scripts
+# - lsof: for checking port usage
+# - curl, git, gcc: basic build tools
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+    sudo \
+    docker.io \
+    iproute2 \
+    lsof \
+    curl \
+    ca-certificates \
+    gcc \
+    git && \
+    rm -rf /var/lib/apt/lists/*
+
+# 2. Create a non-root user 'tester' and grant passwordless sudo
+RUN useradd -m -s /bin/bash tester && \
+    echo "tester ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# 3. Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# 4. Switch to the tester user
+USER tester
+WORKDIR /home/tester/dynadock
+
+# 5. Copy project files and set correct ownership
+COPY --chown=tester:tester . .
+
+# 6. Install all development and runtime dependencies
+RUN uv pip install -e .
+RUN uv pip install pytest pytest-cov pytest-asyncio pytest-docker black ruff mypy pytest-watch bandit safety pytest-timeout requests twine
+
+# 7. Make scripts executable
+RUN chmod +x scripts/*.sh
+
+CMD ["/bin/bash"]
