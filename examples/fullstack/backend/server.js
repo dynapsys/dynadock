@@ -55,7 +55,7 @@ async function connectDatabases() {
     await initDatabase();
     logger.info('✅ Connected to PostgreSQL');
   } catch (err) {
-    logger.error('❌ PostgreSQL connection error:', err);
+    logger.error('❌ PostgreSQL connection error:', { message: err.message, stack: err.stack });
   }
 
   // Redis
@@ -69,7 +69,7 @@ async function connectDatabases() {
     await redisClient.connect();
     logger.info('✅ Connected to Redis');
   } catch (err) {
-    logger.error('❌ Redis connection error:', err);
+    logger.error('❌ Redis connection error:', { message: err.message, stack: err.stack });
   }
 }
 
@@ -151,6 +151,7 @@ app.get('/api/health', async (req, res) => {
     await pgClient.query('SELECT 1');
     health.services.postgres = 'healthy';
   } catch (err) {
+    logger.error('Health check failed for PostgreSQL:', { message: err.message });
     health.services.postgres = 'unhealthy';
     health.status = 'degraded';
   }
@@ -159,6 +160,7 @@ app.get('/api/health', async (req, res) => {
     await redisClient.ping();
     health.services.redis = 'healthy';
   } catch (err) {
+    logger.error('Health check failed for Redis:', { message: err.message });
     health.services.redis = 'unhealthy';
     health.status = 'degraded';
   }

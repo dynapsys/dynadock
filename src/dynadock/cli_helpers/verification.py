@@ -90,13 +90,19 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
         if access_type == "localhost":
             time.sleep(1)
         
-        cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", 
+        cmd = ["curl", "-s", "-w", "%{http_code}", "-o", "-", "-k", 
                "--connect-timeout", "3", "-m", "5", url]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
         
         if result.returncode == 0:
-            http_code = result.stdout.strip()
-            if http_code and http_code != "000" and int(http_code) < 500:
+            # Response body is in stdout, http_code is the last line of stderr if using -o -
+            # A bit tricky, let's split the output.
+            output = result.stdout.strip()
+            http_code_str = output[-3:]
+            body = output[:-3].strip()
+
+            if http_code_str.isdigit() and int(http_code_str) < 500 and body:
+                http_code = int(http_code_str)
                 if access_type == "localhost":
                     port = url.split(':')[-1]
                     console.print(f"  [green]✓[/green] {service}: [green]localhost:{port} is accessible (HTTP {http_code})[/green]")
@@ -106,7 +112,7 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
             else:
                 if access_type == "localhost":
                     port = url.split(':')[-1]
-                    console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{port} returned HTTP {http_code}[/yellow]")
+                    console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{port} returned HTTP {http_code_str} or empty body[/yellow]")
                 elif access_type == "domain":
                     return False
         else:
