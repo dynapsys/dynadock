@@ -1,7 +1,7 @@
 """DynaDock - Dynamic Docker Compose Manager"""
 from __future__ import annotations
 
-__version__ = "0.1.9"
+__version__ = "1.1.0"
 
 from .docker_manager import DockerManager  # noqa: E402
 from .port_allocator import PortAllocator  # noqa: E402
