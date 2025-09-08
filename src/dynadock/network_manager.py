@@ -52,23 +52,14 @@ class NetworkManager:
         try:
             ip_map_json = json.dumps(ip_map)
             python_executable = sys.executable
-            
-            # Construct the PYTHONPATH from the current environment to pass to sudo
-            # This ensures that the virtualenv's site-packages is available.
             python_path = ":".join(sys.path)
 
-            cmd = [
-                "sudo",
-                "-n",  # Non-interactive, fail if password is required
-                "-E",  # Preserve environment
-                f"PYTHONPATH={python_path}",
-                python_executable,
-                "-m",
-                "dynadock.network_helper",
-                command,
-                ip_map_json
-            ]
+            # Use bash -c to ensure PYTHONPATH is set correctly, even with restrictive sudoers policies.
+            # The command is passed as a single string to the shell.
+            shell_command = f"PYTHONPATH='{python_path}' {python_executable} -m dynadock.network_helper {command} '{ip_map_json}'"
             
+            cmd = ["sudo", "-n", "bash", "-c", shell_command]
+
             subprocess.run(cmd, check=True, capture_output=True, text=True)
             return True
         except subprocess.CalledProcessError as e:
