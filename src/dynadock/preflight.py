@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from typing import List, Tuple
 from pathlib import Path
 
 __all__ = ["PreflightChecker", "PreflightReport"]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -57,11 +60,14 @@ class PreflightChecker:
 
     def __init__(self, project_dir: Path) -> None:
         self.project_dir = Path(project_dir)
+        logger.info("PreflightChecker initialized")
 
     def run(self) -> PreflightReport:
         warnings: List[str] = []
         errors: List[str] = []
         suggestions: List[str] = []
+
+        logger.info("Running preflight checks...")
 
         # Binaries
         for bin_name in ("docker", "ip", "curl"):
@@ -96,6 +102,7 @@ class PreflightChecker:
                 suggestions.append("Ensure your user is in the 'docker' group or Docker is running")
 
         # Passwordless sudo (for veth and DNS setup)
+        logger.info("Checking for passwordless sudo...")
         try:
             sp = subprocess.run(["sudo", "-n", "true"], check=False)
             if sp.returncode != 0:
@@ -105,12 +112,14 @@ class PreflightChecker:
             warnings.append("Sudo not available – some features will be degraded (no veth/DNS). Use --manage-hosts fallback.")
 
         # Ports
+        logger.info("Checking for port conflicts...")
         # ss/lsof availability note
         if shutil.which("ss") is None and shutil.which("lsof") is None:
             warnings.append("Neither 'ss' nor 'lsof' found – port usage checks may be unreliable.")
             suggestions.append("Install 'ss' (iproute2) or 'lsof' to enable better port diagnostics.")
 
         for port in (80, 443, 53):
+            logger.debug(f"Checking port {port}...")
             in_use, detail = _port_in_use(port, "tcp" if port != 53 else "udp")
             if in_use:
                 warnings.append(f"Port {port} appears to be in use.")
@@ -122,6 +131,7 @@ class PreflightChecker:
                 if port == 53:
                     suggestions.append("Port 53 conflict prevents local DNS – Dynadock will fallback to --manage-hosts.")
 
+        logger.info("Preflight checks completed.")
         return PreflightReport(ok=not errors, warnings=warnings, errors=errors, suggestions=suggestions)
 
     def try_autofix(self) -> List[str]:

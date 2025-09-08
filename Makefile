@@ -127,8 +127,11 @@ version-major: ## Bump the major version
 
 # Publishing with automatic versioning
 publish: ## Automatically bump patch version, build, tag, and publish to PyPI
-	@if [ -n "$$(git status --porcelain)" ]; then \
+	@if [ -n "$$(/usr/bin/env git status --porcelain)" ]; then \
 		echo "$(RED)Git working directory is not clean. Please commit or stash changes.$(NC)"; \
+		echo "Dirty files:"; \
+		/usr/bin/env git status --porcelain || true; \
+		/usr/bin/env git diff --name-status || true; \
 		exit 1; \
 	fi
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
