@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 from pyroute2 import IPDB
 
-from .log_config import setup_logging
+from dynadock.log_config import setup_logging
 
 logger = logging.getLogger('dynadock.network_helper')
 
