@@ -49,7 +49,7 @@ test-examples: ## Run tests for all example applications
 	@echo "$(GREEN)✓ Example tests complete$(NC)"
 
 test-watch: ## Run tests in watch mode
-	$(UV) run pytest-watch tests/ -v --config-file .pytest-watch.ini
+	bash ./scripts/watch_tests.sh
 
 lint: ## Run linting checks (ruff + mypy)
 	@echo "$(YELLOW)Running linters...$(NC)"
@@ -131,8 +131,12 @@ publish: ## Automatically bump patch version, build, tag, and publish to PyPI
 		echo "$(RED)Not on main branch. Please switch to main before publishing.$(NC)"; \
 		exit 1; \
 	fi
-	echo "$(YELLOW)Bumping patch version...$(NC)"
-	hatch version patch
+	@echo "$(YELLOW)Bumping patch version...$(NC)"
+	@CURRENT_VERSION=$$(shell awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py); \
+	NEW_VERSION=$$(echo $$CURRENT_VERSION | awk -F. -v OFS=. '{$$3++; print}'); \
+	sed -i "s/__version__ = \"$$CURRENT_VERSION\"/__version__ = \"$$NEW_VERSION\"/" src/dynadock/__init__.py; \
+	sed -i "s/version = \"$$CURRENT_VERSION\"/version = \"$$NEW_VERSION\"/" pyproject.toml; \
+	echo "Version bumped from $$CURRENT_VERSION to $$NEW_VERSION"
 	NEW_VERSION=v$$(shell awk -F\" '/^__version__/ {print $$2}' src/dynadock/__init__.py);
 	echo "$(YELLOW)Building and checking distribution...$(NC)"
 	$(MAKE) build-dist
