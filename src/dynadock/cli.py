@@ -11,6 +11,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.live import Live
 import logging
 
 from .docker_manager import DockerManager
@@ -589,6 +590,95 @@ def net_diagnose(ctx: click.Context, domain: str) -> None:
     diag = NetworkDiagnostics(project_dir, domain_str or "dynadock.lan")
     report = diag.diagnose()
     console.print(report)
+
+
+@cli.command()
+@click.option("--interval", "-i", default=5, help="Interval in seconds to check services.", type=int)
+@click.pass_context
+def watch(ctx: click.Context, interval: int) -> None:
+    """Continuously monitor the health of running services."""
+    env_file: str = ctx.obj["env_file"]
+    project_dir: Path = ctx.obj["project_dir"]
+
+    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
+    if not env_values:
+        console.print("[red]No .env.dynadock found. Run `up` first.[/red]")
+        raise SystemExit(1)
+
+    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
+    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
+    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
+    protocol = "https" if enable_tls else "http"
+
+    docker_manager = DockerManager(ctx.obj["compose_file"], project_dir, env_file)
+    services_config = docker_manager.parse_compose()
+
+    ports: Dict[str, int] = {}
+    for key, val in env_values.items():
+        if key.endswith("_PORT") and val:
+            try:
+                ports[key[:-5].lower()] = int(val)
+            except (ValueError, TypeError):
+                pass
+
+    def get_service_urls() -> Dict[str, str]:
+        urls = {}
+        for service, port in ports.items():
+            service_config = services_config.get(service, {})
+            raw_labels = service_config.get('labels', [])
+            labels = {}
+            if isinstance(raw_labels, list):
+                for label_str in raw_labels:
+                    if '=' in label_str:
+                        k, v = label_str.split('=', 1)
+                        labels[k] = v
+            elif isinstance(raw_labels, dict):
+                labels = raw_labels
+            
+            if labels.get('dynadock.protocol') == 'http':
+                urls[service] = f"{protocol}://{service}.{domain}"
+        return urls
+
+    service_urls = get_service_urls()
+    if not service_urls:
+        console.print("[yellow]No HTTP services found to monitor.[/yellow]")
+        return
+
+    def generate_table() -> Table:
+        table = Table(title="DynaDock Service Health")
+        table.add_column("Service", justify="left", style="cyan", no_wrap=True)
+        table.add_column("URL", style="magenta")
+        table.add_column("Status", justify="center")
+        table.add_column("Timestamp", justify="right", style="green")
+
+        # Suppress curl output for watch command
+        original_test_url = test_url_with_curl
+        def quiet_test_url(url: str, service: str, access_type: str) -> bool:
+            # A simplified version of test_url_with_curl that doesn't print
+            try:
+                cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", "--connect-timeout", "2", "-m", "4", url]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    http_code = result.stdout.strip()
+                    return http_code.isdigit() and 200 <= int(http_code) < 300
+                return False
+            except Exception:
+                return False
+
+        for service, url in service_urls.items():
+            is_healthy = quiet_test_url(url, service, "domain")
+            status_icon = "[green]✅ Healthy[/green]" if is_healthy else "[red]❌ Unhealthy[/red]"
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+            table.add_row(service, url, status_icon, timestamp)
+        return table
+
+    try:
+        with Live(generate_table(), console=console, screen=True, auto_refresh=False) as live:
+            while True:
+                time.sleep(interval)
+                live.update(generate_table(), refresh=True)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopping service monitor...[/dim]")
 
 
 @cli.command(name="net-repair")
