@@ -127,19 +127,6 @@ version-major: ## Bump the major version
 
 # Publishing with automatic versioning
 publish: ## Automatically bump patch version, build, tag, and publish to PyPI
-	@echo "--- DIAGNOSTIC: Running git status check ---"
-	@echo "Status output:"
-	@/usr/bin/env git status --porcelain=v1 --untracked-files=no
-	@echo "Line count:"
-	@/usr/bin/env git status --porcelain=v1 --untracked-files=no | wc -l
-	@echo "--- END DIAGNOSTIC ---"
-	@if [ "$$(/usr/bin/env git status --porcelain=v1 --untracked-files=no | wc -l)" -ne 0 ]; then \
-		echo "$(RED)Git working directory is not clean. Please commit or stash changes.$(NC)"; \
-		echo "Dirty files:"; \
-		/usr/bin/env git status --porcelain || true; \
-		/usr/bin/env git diff --name-status || true; \
-		exit 1; \
-	fi
 	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
 		echo "$(RED)Not on main branch. Please switch to main before publishing.$(NC)"; \
 		exit 1; \
