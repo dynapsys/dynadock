@@ -33,8 +33,11 @@ def verify_domain_access(
     for attempt in range(retries):
         all_services_ok = True
         for service, port in allocated_ports.items():
-            # Skip services that don't expose ports (e.g., databases)
-            if 'ports' not in services_config.get(service, {}):
+            service_config = services_config.get(service, {})
+            labels = service_config.get('labels', {})
+
+            # Skip services that are not explicitly marked as HTTP
+            if labels.get('dynadock.protocol') != 'http':
                 continue
 
             if results.get(service, {}).get("domain") or results.get(service, {}).get("localhost"):

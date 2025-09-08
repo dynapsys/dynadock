@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    labels:
+      - "dynadock.protocol=http"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
@@ -76,9 +78,11 @@ services:
 
   mailhog:
     image: mailhog/mailhog
+    restart: unless-stopped
     ports:
-      - "${MAILHOG_SMTP_PORT:-1025}:1025"
-      - "${MAILHOG_UI_PORT:-8025}:8025"
+      - "${MAILHOG_PORT:-8025}:8025"
+    labels:
+      - "dynadock.protocol=http"
     environment:
       - MH_STORAGE=memory
       - MH_SMTP_BIND_ADDR=0.0.0.0:1025
