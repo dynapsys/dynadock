@@ -94,7 +94,7 @@ class ErrorHandler:
         import subprocess
         
         if isinstance(error, subprocess.CalledProcessError):
-            stderr = error.stderr.decode() if error.stderr else "No error output"
+            stderr = error.stderr if error.stderr else "No error output"
             details = {
                 'command': ' '.join(cmd),
                 'returncode': error.returncode,
