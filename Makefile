@@ -78,21 +78,23 @@ docs: ## Build static documentation
 docs-serve: ## Serve documentation locally at http://localhost:8000
 	cd docs && $(UV) run mkdocs serve
 
-clean: ## Clean build, cache and temporary files
-	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
-	rm -rf build/ dist/ *.egg-info .coverage htmlcov/ .pytest_cache/ .env.dynadock Caddyfile
-	# Attempt to remove .dynadock. Some subpaths (caddy/*) may be root-owned; ignore errors.
-	rm -rf .dynadock 2>/dev/null || true
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	@$(MAKE) example-clean 2>/dev/null || true
+clean: ## Clean all build, cache, and temporary files (including root-owned)
+	@echo "$(YELLOW)Cleaning build artifacts and temporary files...$(NC)"
+	# Stop any running examples to release file locks
+	@$(MAKE) example-clean
+	# Remove standard build/cache files
+	rm -rf build/ dist/ *.egg-info .coverage htmlcov/ .pytest_cache/
+	find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name '*.pyc' -delete 2>/dev/null || true
+	# Forcefully remove all DynaDock generated files and directories, using sudo for root-owned ones
+	@echo "$(YELLOW)Cleaning DynaDock generated files (may require sudo)...$(NC)"
+	@find . -type d -name ".dynadock" -exec sudo rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "caddy_data" -exec sudo rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "caddy_config" -exec sudo rm -rf {} + 2>/dev/null || true
+	@find . -type f -name ".env.dynadock" -exec rm -f {} + 2>/dev/null || true
+	@find . -type f -name ".dynadock_ip_map.json" -exec rm -f {} + 2>/dev/null || true
+	@find . -type f -name "ip_map.env" -exec rm -f {} + 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(NC)"
-
-clean-caddy: ## Remove Caddy data that may require sudo
-	@echo "$(YELLOW)Stopping Caddy and purging .dynadock/caddy...$(NC)"
-	-@docker rm -f dynadock-caddy >/dev/null 2>&1 || true
-	@sudo rm -rf .dynadock/caddy || true
-	@echo "$(GREEN)✓ Caddy data removed$(NC)"
 
 docker-test: ## Run integration tests inside Docker
 	docker-compose -f tests/fixtures/docker-compose.test.yaml up -d

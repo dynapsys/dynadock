@@ -206,3 +206,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# DynaDock
+# Ignore generated files and directories
+.dynadock/
+.env.dynadock
+.dynadock_ip_map.json
+ip_map.env
+caddy_data/
+caddy_config/
