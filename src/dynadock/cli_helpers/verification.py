@@ -34,7 +34,17 @@ def verify_domain_access(
         all_services_ok = True
         for service, port in allocated_ports.items():
             service_config = services_config.get(service, {})
-            labels = service_config.get('labels', {})
+            raw_labels = service_config.get('labels', [])
+
+            # Normalize labels to always be a dictionary, as docker-compose can have a list or a map
+            labels = {}
+            if isinstance(raw_labels, list):
+                for label_str in raw_labels:
+                    if '=' in label_str:
+                        key, value = label_str.split('=', 1)
+                        labels[key] = value
+            elif isinstance(raw_labels, dict):
+                labels = raw_labels
 
             # Skip services that are not explicitly marked as HTTP
             if labels.get('dynadock.protocol') != 'http':
