@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import logging
-import os
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List
 
 import docker
 
-from .utils import render_template
 from jinja2 import Template
 
-logger = logging.getLogger('dynadock.caddy_config')
+logger = logging.getLogger("dynadock.caddy_config")
 
 __all__ = ["CaddyConfig"]
 
@@ -69,6 +67,7 @@ https://localhost/health {
 {% endfor %}
 """
 
+
 class CaddyConfig:
     """Generate *Caddyfile* and manage the Caddy container."""
 
@@ -83,10 +82,10 @@ class CaddyConfig:
         self.caddy_dir = self.project_dir / ".dynadock" / "caddy"
         self.caddyfile_path = self.config_dir / "caddy" / "Caddyfile"
         self.client = docker.from_env()
-        
+
         # Ensure directories exist
         self.caddy_dir.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(f" CaddyConfig initialized for domain: {domain}")
         logger.debug(f" TLS enabled: {enable_tls}")
         logger.debug(f" Config directory: {self.config_dir}")
@@ -107,15 +106,19 @@ class CaddyConfig:
         logger.debug(f"📊 Services: {list(services.keys())}")
         logger.debug(f"🔌 Port mappings: {ports}")
         logger.debug(f"🌐 IP mappings: {ips}")
-        
+
         template = Template(CADDYFILE_TEMPLATE)
-        service_data = {s: {"port": p, "ip": ips.get(s) if ips is not None else ""} for s, p in ports.items()}
+        service_data = {
+            s: {"port": p, "ip": ips.get(s) if ips is not None else ""}
+            for s, p in ports.items()
+        }
 
         caddyfile_content = template.render(
             domain=self.domain,
             enable_tls=self.enable_tls,
             services=service_data,
-            cors_origins=cors_origins or [
+            cors_origins=cors_origins
+            or [
                 "http://localhost:3000",
                 "http://localhost:5173",
                 f"https://*.{self.domain}",
@@ -154,21 +157,38 @@ class CaddyConfig:
         self.stop_caddy()  # Ensure any stopped containers are removed
 
         # Get the project root to find certs directory
-        project_root = self.project_dir.parent.parent if "examples" in str(self.project_dir) else self.project_dir
+        project_root = (
+            self.project_dir.parent.parent
+            if "examples" in str(self.project_dir)
+            else self.project_dir
+        )
         certs_dir = project_root / "certs"
-        
+
         cmd = [
-            "docker", "run", "-d",
-            "--name", self._CONTAINER_NAME,
-            "-p", "80:80",
-            "-p", "443:443",
-            "-p", "2019:2019",
-            "-v", f"{self.caddy_dir}:/etc/caddy",
-            "-v", f"{self.caddy_dir}/data:/data",
-            "-v", f"{self.caddy_dir}/logs:/var/log/caddy",
-            "-v", f"{certs_dir}:/etc/caddy/certs:ro",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            self._CONTAINER_NAME,
+            "-p",
+            "80:80",
+            "-p",
+            "443:443",
+            "-p",
+            "2019:2019",
+            "-v",
+            f"{self.caddy_dir}:/etc/caddy",
+            "-v",
+            f"{self.caddy_dir}/data:/data",
+            "-v",
+            f"{self.caddy_dir}/logs:/var/log/caddy",
+            "-v",
+            f"{certs_dir}:/etc/caddy/certs:ro",
             "caddy:2-alpine",
-            "caddy", "run", "--config", "/etc/caddy/Caddyfile",
+            "caddy",
+            "run",
+            "--config",
+            "/etc/caddy/Caddyfile",
         ]
         subprocess.run(cmd, check=True, capture_output=True)
 
@@ -178,8 +198,13 @@ class CaddyConfig:
             return
 
         cmd = [
-            "docker", "exec", self._CONTAINER_NAME,
-            "caddy", "reload", "--config", "/etc/caddy/Caddyfile",
+            "docker",
+            "exec",
+            self._CONTAINER_NAME,
+            "caddy",
+            "reload",
+            "--config",
+            "/etc/caddy/Caddyfile",
         ]
         subprocess.run(cmd, check=True, capture_output=True)
 

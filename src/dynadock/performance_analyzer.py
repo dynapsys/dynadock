@@ -18,7 +18,7 @@ DEFAULT_THRESHOLDS = {
     "Generating environment variables": 0.5,
     "Applying /etc/hosts fallback": 2.0,
     "Starting Caddy reverse-proxy": 5.0,
-    "Starting application containers": 30.0, # Can be very slow if images are pulled
+    "Starting application containers": 30.0,  # Can be very slow if images are pulled
     "Configuring reverse-proxy": 2.0,
 }
 
@@ -30,7 +30,9 @@ class PerformanceAnalyzer:
         self.project_dir = project_dir
         self.log_file = self.project_dir / ".dynadock" / "dynadock.log"
         self.thresholds = thresholds or DEFAULT_THRESHOLDS
-        self.timer_log_pattern = re.compile(r"TIMER: Step '(.+?)' finished in ([\d.]+)s")
+        self.timer_log_pattern = re.compile(
+            r"TIMER: Step '(.+?)' finished in ([\d.]+)s"
+        )
         self.session_start_pattern = re.compile(r"DynaDock CLI started")
 
     def get_latest_session_logs(self) -> List[str]:
@@ -41,7 +43,9 @@ class PerformanceAnalyzer:
         with open(self.log_file, "r") as f:
             lines = f.readlines()
 
-        session_starts = [i for i, line in enumerate(lines) if self.session_start_pattern.search(line)]
+        session_starts = [
+            i for i, line in enumerate(lines) if self.session_start_pattern.search(line)
+        ]
         if not session_starts:
             return []
 
@@ -67,14 +71,18 @@ class PerformanceAnalyzer:
         recommendations = []
 
         for step, duration in timings:
-            base_step = next((key for key in self.thresholds if step.startswith(key)), None)
-            
+            base_step = next(
+                (key for key in self.thresholds if step.startswith(key)), None
+            )
+
             if base_step and duration > self.thresholds[base_step]:
-                bottlenecks.append({
-                    "step": step,
-                    "duration": duration,
-                    "threshold": self.thresholds[base_step]
-                })
+                bottlenecks.append(
+                    {
+                        "step": step,
+                        "duration": duration,
+                        "threshold": self.thresholds[base_step],
+                    }
+                )
 
         if bottlenecks:
             recommendations = self._generate_recommendations(bottlenecks)
@@ -91,22 +99,30 @@ class PerformanceAnalyzer:
         for bottleneck in bottlenecks:
             step = bottleneck["step"]
             if "Starting application containers" in step:
-                recs.append("Uruchamianie kontenerów trwa długo. Spróbuj wcześniej pobrać obrazy poleceniem 'docker pull' lub wyczyść stare obrazy i wolumeny za pomocą 'docker system prune'.")
+                recs.append(
+                    "Uruchamianie kontenerów trwa długo. Spróbuj wcześniej pobrać obrazy poleceniem 'docker pull' lub wyczyść stare obrazy i wolumeny za pomocą 'docker system prune'."
+                )
             elif "Setting up networking" in step:
-                recs.append("Konfiguracja sieci trwa długo, co może być spowodowane przez skrypty systemowe. Jeśli problem się powtarza, rozważ użycie flagi '--manage-hosts' dla prostszej i szybszej konfiguracji.")
+                recs.append(
+                    "Konfiguracja sieci trwa długo, co może być spowodowane przez skrypty systemowe. Jeśli problem się powtarza, rozważ użycie flagi '--manage-hosts' dla prostszej i szybszej konfiguracji."
+                )
             elif "Preflight checks" in step:
-                recs.append("Sprawdzanie wstępne trwa dłużej niż oczekiwano. Może to wskazywać na powolne działanie demona Docker. Sprawdź 'docker info' w poszukiwaniu ostrzeżeń.")
-        
+                recs.append(
+                    "Sprawdzanie wstępne trwa dłużej niż oczekiwano. Może to wskazywać na powolne działanie demona Docker. Sprawdź 'docker info' w poszukiwaniu ostrzeżeń."
+                )
+
         return sorted(list(set(recs)))
 
     def display_report(self, analysis: Dict[str, Any]) -> None:
         """Displays a performance analysis report to the console."""
         if not analysis["bottlenecks"]:
-            console.print("\n[green]✓ Analiza wydajności zakończona. Nie wykryto znaczących opóźnień.[/green]")
+            console.print(
+                "\n[green]✓ Analiza wydajności zakończona. Nie wykryto znaczących opóźnień.[/green]"
+            )
             return
 
         console.print("\n[bold yellow]🚀 Raport Analizy Wydajności[/bold yellow]")
-        
+
         table = Table(title="Wykryte Wąskie Gardła")
         table.add_column("Krok", style="cyan")
         table.add_column("Rzeczywisty Czas", style="magenta")
@@ -119,9 +135,9 @@ class PerformanceAnalyzer:
                 bottleneck["step"],
                 f"{bottleneck['duration']:.2f}s",
                 f"{bottleneck['threshold']:.2f}s",
-                f"{exceeded_by:.2f}s"
+                f"{exceeded_by:.2f}s",
             )
-        
+
         console.print(table)
 
         if analysis["recommendations"]:

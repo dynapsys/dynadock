@@ -66,7 +66,9 @@ class NetworkDiagnostics:
             count = sum(1 for line in out.splitlines() if "dynadock-" in line)
             lines.append(f"- Virtual interfaces: found {count} matching 'dynadock-*'")
         else:
-            lines.append(f"- Virtual interfaces: [yellow]cannot check[/yellow] ({err or 'ip not available'})")
+            lines.append(
+                f"- Virtual interfaces: [yellow]cannot check[/yellow] ({err or 'ip not available'})"
+            )
 
         # 3) DNS container and Caddy container
         try:
@@ -90,9 +92,13 @@ class NetworkDiagnostics:
         if rc == 0:
             domain_ok = f"~{self.domain}" in out
             dns_ok = "127.0.0.1" in out
-            lines.append(f"- systemd-resolved stub (~{self.domain}): {'OK' if domain_ok and dns_ok else '[red]MISSING[/red]'}")
+            lines.append(
+                f"- systemd-resolved stub (~{self.domain}): {'OK' if domain_ok and dns_ok else '[red]MISSING[/red]'}"
+            )
         else:
-            lines.append("- systemd-resolved: [yellow]not available[/yellow] (non-systemd or command missing)")
+            lines.append(
+                "- systemd-resolved: [yellow]not available[/yellow] (non-systemd or command missing)"
+            )
 
         # 5) Critical port bindings
         p53 = _port_in_use(53, "udp") or _port_in_use(53, "tcp")
@@ -116,12 +122,33 @@ class NetworkDiagnostics:
 
         # 7) HTTP check via curl (domain)
         if test_host:
-            rc, out, err = _run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "-k", f"https://{test_host}"])
+            rc, out, err = _run(
+                [
+                    "curl",
+                    "-sS",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    "-k",
+                    f"https://{test_host}",
+                ]
+            )
             if rc == 0 and out and out != "000":
                 lines.append(f"- curl https://{test_host}: HTTP {out}")
             else:
                 # Try HTTP fallback
-                rc2, out2, err2 = _run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", f"http://{test_host}"])
+                rc2, out2, err2 = _run(
+                    [
+                        "curl",
+                        "-sS",
+                        "-o",
+                        "/dev/null",
+                        "-w",
+                        "%{http_code}",
+                        f"http://{test_host}",
+                    ]
+                )
                 if rc2 == 0 and out2 and out2 != "000":
                     lines.append(f"- curl http://{test_host}: HTTP {out2}")
                 else:
@@ -136,11 +163,15 @@ class NetworkDiagnostics:
 
         # Re-apply systemd-resolved stub domain
         rc1, out1, err1 = _run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"])
-        rc2, out2, err2 = _run(["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"])
+        rc2, out2, err2 = _run(
+            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"]
+        )
         if rc1 == 0 and rc2 == 0:
             lines.append("- systemd-resolved: stub domain configured for loopback")
         else:
-            lines.append("- systemd-resolved: could not configure (non-systemd or permission)")
+            lines.append(
+                "- systemd-resolved: could not configure (non-systemd or permission)"
+            )
 
         # Ensure DNS container is running
         try:

@@ -22,11 +22,13 @@ def setup_logging(verbose: bool = False) -> None:
     root_logger.setLevel(log_level)
 
     # Create handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
-    
+
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
 
@@ -35,7 +37,7 @@ def setup_logging(verbose: bool = False) -> None:
     root_logger.addHandler(file_handler)
 
     # Set the logger for the application
-    logger = logging.getLogger('dynadock')
+    logger = logging.getLogger("dynadock")
     logger.setLevel(log_level)
 
     if verbose:

@@ -1,14 +1,13 @@
 import json
 import sys
 import logging
-from pathlib import Path
-from typing import Dict, Any
 
 from pyroute2 import IPDB
 
 from dynadock.log_config import setup_logging
 
-logger = logging.getLogger('dynadock.network_helper')
+logger = logging.getLogger("dynadock.network_helper")
+
 
 def setup_interfaces(ip_map_json: str) -> None:
     """Create virtual network interfaces based on a JSON map."""
@@ -24,7 +23,7 @@ def setup_interfaces(ip_map_json: str) -> None:
                     logger.debug(f"Removing existing interface: {iface_name}")
                     ipdb.interfaces[iface_name].remove().commit()
 
-            ipdb.create(ifname=veth_name, kind='veth', peer=peer_name).commit()
+            ipdb.create(ifname=veth_name, kind="veth", peer=peer_name).commit()
             logger.debug(f"Created veth pair: {veth_name} <-> {peer_name}")
             with ipdb.interfaces[veth_name] as veth:
                 veth.add_ip(f"{ip}/24")
@@ -32,6 +31,7 @@ def setup_interfaces(ip_map_json: str) -> None:
             with ipdb.interfaces[peer_name] as peer:
                 peer.up()
     logger.info("Interfaces configured successfully.")
+
 
 def teardown_interfaces(ip_map_json: str) -> None:
     """Remove virtual network interfaces based on a JSON map."""

@@ -6,7 +6,7 @@ Domain verification helper functions for DynaDock CLI
 import subprocess
 import time
 import shutil
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple
 from rich.console import Console
 
 console = Console()
@@ -19,7 +19,7 @@ def verify_domain_access(
     enable_tls: bool = True,
     retries: int = 3,
     initial_wait: float = 1.0,
-    ip_map: Dict[str, str] | None = None
+    ip_map: Dict[str, str] | None = None,
 ) -> Tuple[bool, Dict[str, Dict[str, bool]]]:
     """
     Verify if services are accessible both via localhost port and domain.
@@ -34,26 +34,30 @@ def verify_domain_access(
         all_services_ok = True
         for service, port in allocated_ports.items():
             service_config = services_config.get(service, {})
-            raw_labels = service_config.get('labels', [])
+            raw_labels = service_config.get("labels", [])
 
             # Normalize labels to always be a dictionary, as docker-compose can have a list or a map
             labels = {}
             if isinstance(raw_labels, list):
                 for label_str in raw_labels:
-                    if '=' in label_str:
-                        key, value = label_str.split('=', 1)
+                    if "=" in label_str:
+                        key, value = label_str.split("=", 1)
                         labels[key] = value
             elif isinstance(raw_labels, dict):
                 labels = raw_labels
 
             # Skip services that are not explicitly marked as HTTP
-            if labels.get('dynadock.protocol') != 'http':
+            if labels.get("dynadock.protocol") != "http":
                 continue
 
-            if results.get(service, {}).get("domain") or results.get(service, {}).get("localhost"):
+            if results.get(service, {}).get("domain") or results.get(service, {}).get(
+                "localhost"
+            ):
                 continue  # Skip already verified services
 
-            console.print(f"\n[blue]Testing {service} (Attempt {attempt + 1}/{retries}):[/blue]")
+            console.print(
+                f"\n[blue]Testing {service} (Attempt {attempt + 1}/{retries}):[/blue]"
+            )
 
             # Test localhost access
             localhost_url = f"http://localhost:{port}"
@@ -89,11 +93,23 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
     try:
         if access_type == "localhost":
             time.sleep(1)
-        
-        cmd = ["curl", "-s", "-w", "%{http_code}", "-o", "-", "-k", 
-               "--connect-timeout", "3", "-m", "5", url]
+
+        cmd = [
+            "curl",
+            "-s",
+            "-w",
+            "%{http_code}",
+            "-o",
+            "-",
+            "-k",
+            "--connect-timeout",
+            "3",
+            "-m",
+            "5",
+            url,
+        ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
-        
+
         if result.returncode == 0:
             # Response body is in stdout, http_code is the last line of stderr if using -o -
             # A bit tricky, let's split the output.
@@ -104,22 +120,30 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
             if http_code_str.isdigit() and 200 <= int(http_code_str) < 300 and body:
                 http_code = int(http_code_str)
                 if access_type == "localhost":
-                    port = url.split(':')[-1]
-                    console.print(f"  [green]✓[/green] {service}: [green]localhost:{port} is accessible (HTTP {http_code})[/green]")
+                    port = url.split(":")[-1]
+                    console.print(
+                        f"  [green]✓[/green] {service}: [green]localhost:{port} is accessible (HTTP {http_code})[/green]"
+                    )
                 else:
-                    console.print(f"  [green]✓[/green] {service}: [green]{url} is accessible (HTTP {http_code})[/green]")
+                    console.print(
+                        f"  [green]✓[/green] {service}: [green]{url} is accessible (HTTP {http_code})[/green]"
+                    )
                 return True
             else:
                 if access_type == "localhost":
-                    port = url.split(':')[-1]
-                    console.print(f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{port} returned HTTP {http_code_str} or empty body[/yellow]")
+                    port = url.split(":")[-1]
+                    console.print(
+                        f"  [yellow]⚠[/yellow] {service}: [yellow]localhost:{port} returned HTTP {http_code_str} or empty body[/yellow]"
+                    )
                 elif access_type == "domain":
                     return False
         else:
             if access_type == "domain":
                 return False
             else:
-                console.print(f"  [red]✗[/red] {service}: [red]{url} is not accessible (curl exit code: {result.returncode})[/red]")
+                console.print(
+                    f"  [red]✗[/red] {service}: [red]{url} is not accessible (curl exit code: {result.returncode})[/red]"
+                )
         return False
     except subprocess.TimeoutExpired:
         if access_type == "localhost":
@@ -127,11 +151,15 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
         return False
     except Exception as e:
         if access_type == "localhost":
-            console.print(f"  [red]✗[/red] {service}: [red]Failed to test {url}: {e}[/red]")
+            console.print(
+                f"  [red]✗[/red] {service}: [red]Failed to test {url}: {e}[/red]"
+            )
         return False
 
 
-def _suggest_hosts_entries(results: Dict, ip_map: Dict[str, str] | None, domain: str, all_ok: bool):
+def _suggest_hosts_entries(
+    results: Dict, ip_map: Dict[str, str] | None, domain: str, all_ok: bool
+):
     """Suggest /etc/hosts entries if needed"""
     try:
         if not all_ok and ip_map:
@@ -141,12 +169,18 @@ def _suggest_hosts_entries(results: Dict, ip_map: Dict[str, str] | None, domain:
                 if (not res.get("domain")) and res.get("localhost"):
                     ip = ip_map.get(svc)
                     if ip:
-                        console.print(f"  - Add to /etc/hosts: [cyan]{ip}\t{svc}.{domain}[/cyan]")
+                        console.print(
+                            f"  - Add to /etc/hosts: [cyan]{ip}\t{svc}.{domain}[/cyan]"
+                        )
                         any_suggest = True
             if any_suggest:
                 if shutil.which("resolvectl") is None:
-                    console.print("  - Your system lacks 'resolvectl' – consider using '--manage-hosts' on 'up'.")
+                    console.print(
+                        "  - Your system lacks 'resolvectl' – consider using '--manage-hosts' on 'up'."
+                    )
                 else:
-                    console.print("  - Ensure local DNS is running or use '--manage-hosts' as a fallback.")
+                    console.print(
+                        "  - Ensure local DNS is running or use '--manage-hosts' as a fallback."
+                    )
     except Exception:
         pass

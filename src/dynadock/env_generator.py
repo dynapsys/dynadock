@@ -6,6 +6,7 @@ It writes all entries to *env_file* in the well-known ``dotenv`` format so
 that they can be consumed by *docker-compose* (via ``--env-file``) as well
 as by the running applications.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -13,7 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Any
 import logging
 
-logger = logging.getLogger('dynadock.env_generator')
+logger = logging.getLogger("dynadock.env_generator")
 
 __all__ = ["EnvGenerator"]
 
@@ -52,9 +53,11 @@ class EnvGenerator:
             "DYNADOCK_DOMAIN": domain,
             "DYNADOCK_PROTOCOL": "https" if enable_tls else "http",
             "DYNADOCK_ENABLE_TLS": str(enable_tls).lower(),
-            "DYNADOCK_CORS_ORIGINS": ",".join(cors_origins)
-            if cors_origins
-            else f"http://localhost:3000,http://localhost:5173,https://*.{domain}",
+            "DYNADOCK_CORS_ORIGINS": (
+                ",".join(cors_origins)
+                if cors_origins
+                else f"http://localhost:3000,http://localhost:5173,https://*.{domain}"
+            ),
         }
 
         for service_name, port in ports.items():
@@ -62,11 +65,16 @@ class EnvGenerator:
             upper_name = service_name.upper().replace("-", "_")
             env_vars[f"{upper_name}_PORT"] = str(port)
             env_vars[f"{upper_name}_HOST"] = "0.0.0.0"
-            env_vars[f"{upper_name}_URL"] = f"{env_vars['DYNADOCK_PROTOCOL']}://{service_name}.{domain}"
+            env_vars[f"{upper_name}_URL"] = (
+                f"{env_vars['DYNADOCK_PROTOCOL']}://{service_name}.{domain}"
+            )
             env_vars[f"{upper_name}_INTERNAL_URL"] = f"http://localhost:{port}"
 
             # Database-specific helpers
-            if any(db in service_name.lower() for db in ("postgres", "mysql", "mongo", "redis")):
+            if any(
+                db in service_name.lower()
+                for db in ("postgres", "mysql", "mongo", "redis")
+            ):
                 self._add_database_vars(env_vars, service_name, port)
 
         # Security secrets
@@ -113,7 +121,9 @@ class EnvGenerator:
     # Database helpers
     # ------------------------------------------------------------------
 
-    def _add_database_vars(self, env_vars: Dict[str, str], service: str, port: int) -> None:
+    def _add_database_vars(
+        self, env_vars: Dict[str, str], service: str, port: int
+    ) -> None:
         upper = service.upper().replace("-", "_")
         if "postgres" in service.lower():
             env_vars[f"{upper}_USER"] = "postgres"
@@ -138,4 +148,6 @@ class EnvGenerator:
             )
         elif "redis" in service.lower():
             env_vars[f"{upper}_PASSWORD"] = secrets.token_urlsafe(16)
-            env_vars[f"{upper}_URL"] = f"redis://:{env_vars[f'{upper}_PASSWORD']}@{service}:{port}/0"
+            env_vars[f"{upper}_URL"] = (
+                f"redis://:{env_vars[f'{upper}_PASSWORD']}@{service}:{port}/0"
+            )

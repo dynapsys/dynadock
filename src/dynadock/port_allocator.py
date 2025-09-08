@@ -3,6 +3,7 @@
 This helper scans all currently *LISTEN* ports on the system at import time
 (using *psutil*) and then hands out free ports in the configured range.
 """
+
 from __future__ import annotations
 
 import socket
@@ -11,7 +12,7 @@ import logging
 
 import psutil
 
-logger = logging.getLogger('dynadock.port_allocator')
+logger = logging.getLogger("dynadock.port_allocator")
 
 __all__ = [
     "PortAllocator",

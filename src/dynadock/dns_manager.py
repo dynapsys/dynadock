@@ -11,6 +11,7 @@ __all__ = ["DnsManager"]
 
 def _port_in_use_53() -> bool:
     """Return True if port 53 appears to be in use (tcp or udp)."""
+
     def _run(cmd: list[str]) -> tuple[int, str, str]:
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -105,16 +106,23 @@ class DnsManager:
 
         # Configure systemd-resolved stub domain to forward ~domain to 127.0.0.1
         # These may fail on systems without systemd-resolved; ignore errors but print hints
-        print(f"[dynadock] Configuring systemd-resolved: route '~{self.domain}' to 127.0.0.1 on lo")
+        print(
+            f"[dynadock] Configuring systemd-resolved: route '~{self.domain}' to 127.0.0.1 on lo"
+        )
         subprocess.run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"], check=False)
-        subprocess.run(["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"], check=False)
+        subprocess.run(
+            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"], check=False
+        )
         subprocess.run(["sudo", "resolvectl", "flush-caches"], check=False)
 
     def reload_dns(self) -> None:
         if not self.is_running():
             return
         try:
-            subprocess.run(["docker", "exec", self._CONTAINER_NAME, "kill", "-HUP", "1"], check=True)
+            subprocess.run(
+                ["docker", "exec", self._CONTAINER_NAME, "kill", "-HUP", "1"],
+                check=True,
+            )
         except subprocess.CalledProcessError:
             # Fallback: restart container
             subprocess.run(["docker", "restart", self._CONTAINER_NAME], check=False)

@@ -5,6 +5,7 @@ lowest-common-denominator that will work in virtually every environment. For a
 few helper operations – such as querying running containers – we fall back to
 *docker-py* which offers a richer Python API.
 """
+
 from __future__ import annotations
 
 import os
@@ -21,7 +22,7 @@ import yaml
 from .port_allocator import PortAllocator
 from .exceptions import DynaDockDockerError, DynaDockTimeoutError, ErrorHandler
 
-logger = logging.getLogger('dynadock.docker_manager')
+logger = logging.getLogger("dynadock.docker_manager")
 
 __all__ = ["DockerManager"]
 
@@ -33,18 +34,15 @@ _LOGGED_ENV_VARS = (
 
 
 def _run(
-    cmd: List[str],
-    *,
-    cwd: str | Path | None = None,
-    env: Dict[str, str] | None = None
+    cmd: List[str], *, cwd: str | Path | None = None, env: Dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
     """Run a subprocess with some sensible defaults."""
     logger.debug(f"🔨 Running command: {' '.join(cmd)}")
     if cwd:
         logger.debug(f"📁 Working directory: {cwd}")
-    
+
     error_handler = ErrorHandler(logger)
-    
+
     try:
         result = subprocess.run(
             cmd,
@@ -63,39 +61,42 @@ def _run(
 class DockerManager:  # pylint: disable=too-many-public-methods
     """Orchestrate *docker-compose* lifecycle on behalf of DynaDock."""
 
-    def __init__(self, compose_file: str | Path, project_dir: Path | None = None, env_file: str | None = None):
+    def __init__(
+        self,
+        compose_file: str | Path,
+        project_dir: Path | None = None,
+        env_file: str | None = None,
+    ):
         self.error_handler = ErrorHandler(logger)
-        
+
         try:
             self.compose_file = str(compose_file)
             self.project_dir = Path(project_dir or Path(compose_file).parent).resolve()
             self.env_file = env_file
-            
+
             # Validate compose file exists
             if not Path(self.compose_file).exists():
                 self.error_handler.log_and_raise(
                     DynaDockDockerError,
-                    f"Docker Compose file not found: {self.compose_file}"
+                    f"Docker Compose file not found: {self.compose_file}",
                 )
-            
+
             self.client = docker.from_env()  # heavy import but only used on demand
-            
-            logger.info(f"🐳 DockerManager initialized")
+
+            logger.info("🐳 DockerManager initialized")
             logger.debug(f"📄 Compose file: {self.compose_file}")
             logger.debug(f"📁 Project directory: {self.project_dir}")
             logger.debug(f"🔧 Env file: {self.env_file}")
             self.project_name = self._get_project_name()
-            
+
             # Determine compose command (docker-compose or docker compose)
             self._compose_base = self._detect_compose_command()
             logger.info(f"🔧 Using compose command: {' '.join(self._compose_base)}")
-            
+
         except Exception as e:
             if not isinstance(e, DynaDockDockerError):
                 self.error_handler.log_and_raise(
-                    DynaDockDockerError,
-                    "Failed to initialize DockerManager",
-                    e
+                    DynaDockDockerError, "Failed to initialize DockerManager", e
                 )
             raise
 
@@ -110,7 +111,9 @@ class DockerManager:  # pylint: disable=too-many-public-methods
         elif shutil.which("docker"):
             # Verify that docker compose exists (plugin)
             try:
-                subprocess.run(["docker", "compose", "version"], check=True, capture_output=True)
+                subprocess.run(
+                    ["docker", "compose", "version"], check=True, capture_output=True
+                )
                 return ["docker", "compose"]
             except Exception:
                 # Fallback to docker-compose name (will fail later with clearer error from preflight)
@@ -118,28 +121,28 @@ class DockerManager:  # pylint: disable=too-many-public-methods
         else:
             self.error_handler.log_and_raise(
                 DynaDockDockerError,
-                "Neither 'docker-compose' nor 'docker compose' command found. Please install Docker Compose."
+                "Neither 'docker-compose' nor 'docker compose' command found. Please install Docker Compose.",
             )
-    
+
     def _get_project_name(self) -> str:
         """Derive a compose project name from the directory name."""
         try:
             project_name = (
                 self.project_dir.name.lower().replace("_", "").replace("-", "")
-            )[:50]  # compose limits name length
-            
+            )[
+                :50
+            ]  # compose limits name length
+
             if not project_name:
                 self.error_handler.log_and_raise(
                     DynaDockDockerError,
-                    "Cannot derive project name from empty directory name"
+                    "Cannot derive project name from empty directory name",
                 )
-            
+
             return project_name
         except Exception as e:
             self.error_handler.log_and_raise(
-                DynaDockDockerError,
-                "Failed to derive project name",
-                e
+                DynaDockDockerError, "Failed to derive project name", e
             )
 
     # ------------------------------------------------------------------
@@ -154,20 +157,19 @@ class DockerManager:  # pylint: disable=too-many-public-methods
                 compose_data = yaml.safe_load(fp)
         except FileNotFoundError:
             self.error_handler.log_and_raise(
-                DynaDockDockerError,
-                f"Compose file not found: {self.compose_file}"
+                DynaDockDockerError, f"Compose file not found: {self.compose_file}"
             )
         except yaml.YAMLError as e:
             self.error_handler.log_and_raise(
                 DynaDockDockerError,
                 f"Invalid YAML in compose file: {self.compose_file}",
-                e
+                e,
             )
         except Exception as e:
             self.error_handler.log_and_raise(
                 DynaDockDockerError,
                 f"Failed to parse compose file: {self.compose_file}",
-                e
+                e,
             )
         return compose_data.get("services", {})  # type: ignore[return-value]
 
@@ -214,7 +216,9 @@ class DockerManager:  # pylint: disable=too-many-public-methods
             )
         return self.ps()
 
-    def down(self, *, remove_volumes: bool = False, remove_images: bool = False) -> None:
+    def down(
+        self, *, remove_volumes: bool = False, remove_images: bool = False
+    ) -> None:
         cmd = self._compose_cmd("down")
         if remove_volumes:
             cmd.append("-v")
@@ -241,9 +245,13 @@ class DockerManager:  # pylint: disable=too-many-public-methods
         cmd = self._compose_cmd("exec", service, command)
         subprocess.run(cmd, cwd=self.project_dir)  # noqa: S603 – CLI pass-through
 
-    def wait_for_healthy_services(self, services: List[str], timeout: int = 120) -> None:
+    def wait_for_healthy_services(
+        self, services: List[str], timeout: int = 120
+    ) -> None:
         """Wait for specified services to become healthy based on Docker health checks."""
-        logger.info(f"⏳ Waiting for services to become healthy: {', '.join(services)} (timeout: {timeout}s)")
+        logger.info(
+            f"⏳ Waiting for services to become healthy: {', '.join(services)} (timeout: {timeout}s)"
+        )
         start_time = time.time()
 
         while time.time() - start_time < timeout:
@@ -252,34 +260,40 @@ class DockerManager:  # pylint: disable=too-many-public-methods
 
             # Get current container states
             containers = self.ps()
-            container_map = {c.labels.get('com.docker.compose.service'): c for c in containers}
+            container_map = {
+                c.labels.get("com.docker.compose.service"): c for c in containers
+            }
 
             for service_name in services:
                 container = container_map.get(service_name)
                 if not container:
-                    logger.warning(f"Container for service '{service_name}' not found yet.")
+                    logger.warning(
+                        f"Container for service '{service_name}' not found yet."
+                    )
                     all_healthy = False
                     unhealthy_services.append(service_name)
                     continue
 
                 # Check health status
-                health = container.attrs.get('State', {}).get('Health', {})
-                status = health.get('Status')
+                health = container.attrs.get("State", {}).get("Health", {})
+                status = health.get("Status")
 
                 if status:
-                    if status == 'healthy':
+                    if status == "healthy":
                         logger.debug(f"✅ Service '{service_name}' is healthy.")
-                    elif status == 'unhealthy':
+                    elif status == "unhealthy":
                         self.error_handler.log_and_raise(
                             DynaDockDockerError,
-                            f"Service '{service_name}' reported as unhealthy. Check logs for details."
+                            f"Service '{service_name}' reported as unhealthy. Check logs for details.",
                         )
-                    else: # 'starting'
+                    else:  # 'starting'
                         all_healthy = False
                         unhealthy_services.append(service_name)
                 else:
                     # No health check defined, assume healthy
-                    logger.debug(f"Service '{service_name}' has no health check, assuming it's up.")
+                    logger.debug(
+                        f"Service '{service_name}' has no health check, assuming it's up."
+                    )
 
             if all_healthy:
                 logger.info("✅ All services are healthy!")
@@ -290,5 +304,5 @@ class DockerManager:  # pylint: disable=too-many-public-methods
 
         self.error_handler.log_and_raise(
             DynaDockTimeoutError,
-            f"Timed out waiting for services to become healthy: {', '.join(unhealthy_services)}"
+            f"Timed out waiting for services to become healthy: {', '.join(unhealthy_services)}",
         )

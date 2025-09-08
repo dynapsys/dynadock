@@ -21,8 +21,14 @@ def display_running_services(
     if status_by_service is not None:
         if isinstance(status_by_service, list):
             for container in status_by_service:
-                service_lbl = container.labels.get("com.docker.compose.service", "unknown")
-                health = container.attrs.get("State", {}).get("Health", {}).get("Status", "-")
+                service_lbl = container.labels.get(
+                    "com.docker.compose.service", "unknown"
+                )
+                health = (
+                    container.attrs.get("State", {})
+                    .get("Health", {})
+                    .get("Status", "-")
+                )
                 status_map[service_lbl] = (container.status, health)
         else:
             status_map = status_by_service
@@ -31,7 +37,7 @@ def display_running_services(
     table.add_column("Service", style="cyan", no_wrap=True)
     table.add_column("Port", style="green", justify="right")
     table.add_column("URL", style="yellow")
-    
+
     show_status = bool(status_map)
     if show_status:
         table.add_column("Status", style="blue")
@@ -40,11 +46,11 @@ def display_running_services(
     for service, port in allocated_ports.items():
         url = f"{'https' if enable_tls else 'http'}://{service}.{domain}"
         row = [service, str(port), url]
-        
+
         if show_status:
             status, health = status_map.get(service, ("-", "-"))
             row.extend([status, health])
-            
+
         table.add_row(*row)
 
     console.print(table)

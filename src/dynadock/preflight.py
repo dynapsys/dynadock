@@ -47,7 +47,9 @@ def _port_in_use(port: int, proto: str = "tcp") -> Tuple[bool, str]:
         pass
     # Fallback to lsof
     try:
-        p2 = subprocess.run(["lsof", f"-i:{port}"], capture_output=True, text=True, check=False)
+        p2 = subprocess.run(
+            ["lsof", f"-i:{port}"], capture_output=True, text=True, check=False
+        )
         if p2.returncode == 0 and p2.stdout.strip():
             return True, p2.stdout
     except FileNotFoundError:
@@ -81,46 +83,76 @@ class PreflightChecker:
             compose_ok = True
         elif shutil.which("docker") is not None:
             try:
-                subprocess.run(["docker", "compose", "version"], check=True, capture_output=True)
+                subprocess.run(
+                    ["docker", "compose", "version"], check=True, capture_output=True
+                )
                 compose_ok = True
             except Exception:
                 pass
         if not compose_ok:
-            errors.append("Neither docker-compose nor 'docker compose' plugin is available")
-            suggestions.append("Install docker-compose or Docker Compose plugin (e.g. 'docker compose')")
+            errors.append(
+                "Neither docker-compose nor 'docker compose' plugin is available"
+            )
+            suggestions.append(
+                "Install docker-compose or Docker Compose plugin (e.g. 'docker compose')"
+            )
 
         # Optional: resolvectl
         if shutil.which("resolvectl") is None:
-            warnings.append("systemd-resolved (resolvectl) not found – DNS stub domain may not be configured automatically.")
-            suggestions.append("Consider installing or enable fallback via --manage-hosts")
+            warnings.append(
+                "systemd-resolved (resolvectl) not found – DNS stub domain may not be configured automatically."
+            )
+            suggestions.append(
+                "Consider installing or enable fallback via --manage-hosts"
+            )
 
         # Docker accessibility
         if shutil.which("docker") is not None:
-            p = subprocess.run(["docker", "ps"], capture_output=True, text=True, check=False)
+            p = subprocess.run(
+                ["docker", "ps"], capture_output=True, text=True, check=False
+            )
             if p.returncode != 0:
-                errors.append("Cannot communicate with Docker daemon (docker ps failed)")
-                suggestions.append("Ensure your user is in the 'docker' group or Docker is running")
+                errors.append(
+                    "Cannot communicate with Docker daemon (docker ps failed)"
+                )
+                suggestions.append(
+                    "Ensure your user is in the 'docker' group or Docker is running"
+                )
 
         # Passwordless sudo (for veth and DNS setup)
         logger.info("Checking for passwordless sudo...")
         try:
             sp = subprocess.run(["sudo", "-n", "true"], check=False)
             if sp.returncode != 0:
-                errors.append("Passwordless sudo is required for network setup. It is not available.")
-                suggestions.append("To enable, run 'sudo visudo' and add the following line, replacing 'your_username' with your actual username:")
-                suggestions.append("    your_username ALL=(ALL) NOPASSWD: /usr/bin/ip, /usr/bin/python3")
-                suggestions.append("Alternatively, use the --manage-hosts flag to run without virtual networking.")
+                errors.append(
+                    "Passwordless sudo is required for network setup. It is not available."
+                )
+                suggestions.append(
+                    "To enable, run 'sudo visudo' and add the following line, replacing 'your_username' with your actual username:"
+                )
+                suggestions.append(
+                    "    your_username ALL=(ALL) NOPASSWD: /usr/bin/ip, /usr/bin/python3"
+                )
+                suggestions.append(
+                    "Alternatively, use the --manage-hosts flag to run without virtual networking."
+                )
             else:
                 logger.info("✅ Passwordless sudo is available.")
         except Exception:
-            warnings.append("Sudo not available – some features will be degraded (no veth/DNS). Use --manage-hosts fallback.")
+            warnings.append(
+                "Sudo not available – some features will be degraded (no veth/DNS). Use --manage-hosts fallback."
+            )
 
         # Ports
         logger.info("Checking for port conflicts...")
         # ss/lsof availability note
         if shutil.which("ss") is None and shutil.which("lsof") is None:
-            warnings.append("Neither 'ss' nor 'lsof' found – port usage checks may be unreliable.")
-            suggestions.append("Install 'ss' (iproute2) or 'lsof' to enable better port diagnostics.")
+            warnings.append(
+                "Neither 'ss' nor 'lsof' found – port usage checks may be unreliable."
+            )
+            suggestions.append(
+                "Install 'ss' (iproute2) or 'lsof' to enable better port diagnostics."
+            )
 
         for port in (80, 443, 53):
             logger.debug(f"Checking port {port}...")
@@ -129,21 +161,31 @@ class PreflightChecker:
                 warnings.append(f"Port {port} appears to be in use.")
                 if detail:
                     suggestions.append(f"Check processes using port {port}:")
-                    suggestions.extend([f"    {line}" for line in detail.splitlines()[:5]])
+                    suggestions.extend(
+                        [f"    {line}" for line in detail.splitlines()[:5]]
+                    )
                 if port in (80, 443):
-                    suggestions.append("Use 'make free-port-80' or stop the conflicting process/container.")
+                    suggestions.append(
+                        "Use 'make free-port-80' or stop the conflicting process/container."
+                    )
                 if port == 53:
-                    suggestions.append("Port 53 conflict prevents local DNS – Dynadock will fallback to --manage-hosts.")
+                    suggestions.append(
+                        "Port 53 conflict prevents local DNS – Dynadock will fallback to --manage-hosts."
+                    )
 
         logger.info("Preflight checks completed.")
-        return PreflightReport(ok=not errors, warnings=warnings, errors=errors, suggestions=suggestions)
+        return PreflightReport(
+            ok=not errors, warnings=warnings, errors=errors, suggestions=suggestions
+        )
 
     def try_autofix(self) -> List[str]:
         actions: List[str] = []
         # Remove stale dynadock containers if present
         for name in ("dynadock-caddy", "dynadock-dns"):
             try:
-                subprocess.run(["docker", "rm", "-f", name], check=False, capture_output=True)
+                subprocess.run(
+                    ["docker", "rm", "-f", name], check=False, capture_output=True
+                )
                 actions.append(f"Ensured container '{name}' is not running")
             except Exception:
                 pass

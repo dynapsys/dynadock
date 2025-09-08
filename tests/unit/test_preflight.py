@@ -1,4 +1,3 @@
-import types
 from pathlib import Path
 
 import pytest
@@ -18,6 +17,7 @@ class DummyProc:
 def _mk_which(mapping: dict[str, str | None]):
     def _which(name: str):
         return mapping.get(name)
+
     return _which
 
 
@@ -43,7 +43,10 @@ def test_preflight_binaries_missing(monkeypatch, tmp_path: Path):
     assert any("Required binary not found: docker" in e for e in report.errors)
     assert any("Required binary not found: ip" in e for e in report.errors)
     assert any("Required binary not found: curl" in e for e in report.errors)
-    assert any("Neither docker-compose nor 'docker compose' plugin is available" in e for e in report.errors)
+    assert any(
+        "Neither docker-compose nor 'docker compose' plugin is available" in e
+        for e in report.errors
+    )
 
     # Warnings for no resolvectl, no ss/lsof, and sudo not available
     assert any("resolvectl" in w for w in report.warnings)
@@ -57,14 +60,16 @@ def test_preflight_compose_plugin_ok(monkeypatch, tmp_path: Path):
     # docker, ip, curl, resolvectl, ss available; docker-compose not installed
     monkeypatch.setattr(
         "dynadock.preflight.shutil.which",
-        _mk_which({
-            "docker": "/usr/bin/docker",
-            "ip": "/usr/sbin/ip",
-            "curl": "/usr/bin/curl",
-            "resolvectl": "/usr/bin/resolvectl",
-            "ss": "/usr/sbin/ss",
-            # docker-compose intentionally None -> plugin path used
-        }),
+        _mk_which(
+            {
+                "docker": "/usr/bin/docker",
+                "ip": "/usr/sbin/ip",
+                "curl": "/usr/bin/curl",
+                "resolvectl": "/usr/bin/resolvectl",
+                "ss": "/usr/sbin/ss",
+                # docker-compose intentionally None -> plugin path used
+            }
+        ),
     )
 
     def fake_run(args, *_, **__):
@@ -95,13 +100,15 @@ def test_preflight_docker_inaccessible(monkeypatch, tmp_path: Path):
     # Binaries present so we get to docker ps check
     monkeypatch.setattr(
         "dynadock.preflight.shutil.which",
-        _mk_which({
-            "docker": "/usr/bin/docker",
-            "ip": "/usr/sbin/ip",
-            "curl": "/usr/bin/curl",
-            "resolvectl": "/usr/bin/resolvectl",
-            "ss": "/usr/sbin/ss",
-        }),
+        _mk_which(
+            {
+                "docker": "/usr/bin/docker",
+                "ip": "/usr/sbin/ip",
+                "curl": "/usr/bin/curl",
+                "resolvectl": "/usr/bin/resolvectl",
+                "ss": "/usr/sbin/ss",
+            }
+        ),
     )
 
     def fake_run(args, *_, **__):
@@ -127,13 +134,15 @@ def test_preflight_ports_in_use(monkeypatch, tmp_path: Path):
     # All binaries present
     monkeypatch.setattr(
         "dynadock.preflight.shutil.which",
-        _mk_which({
-            "docker": "/usr/bin/docker",
-            "ip": "/usr/sbin/ip",
-            "curl": "/usr/bin/curl",
-            "resolvectl": "/usr/bin/resolvectl",
-            "ss": "/usr/sbin/ss",
-        }),
+        _mk_which(
+            {
+                "docker": "/usr/bin/docker",
+                "ip": "/usr/sbin/ip",
+                "curl": "/usr/bin/curl",
+                "resolvectl": "/usr/bin/resolvectl",
+                "ss": "/usr/sbin/ss",
+            }
+        ),
     )
 
     def fake_run(args, *_, **__):
@@ -148,10 +157,10 @@ def test_preflight_ports_in_use(monkeypatch, tmp_path: Path):
             flags = args[1]
             if "-ltnp" in flags:
                 # Simulate port 80 in use, but not 443
-                return DummyProc(0, "LISTEN 0 128 *:80 *:* users:(\"nginx\")")
+                return DummyProc(0, 'LISTEN 0 128 *:80 *:* users:("nginx")')
             else:
                 # UDP check -> port 53 in use
-                return DummyProc(0, "UNCONN 0 0 *:53 *:* users:(\"dnsmasq\")")
+                return DummyProc(0, 'UNCONN 0 0 *:53 *:* users:("dnsmasq")')
         return DummyProc(0, "")
 
     monkeypatch.setattr("dynadock.preflight.subprocess.run", fake_run)

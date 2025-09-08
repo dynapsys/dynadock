@@ -3,11 +3,9 @@
 Only lightweight helpers live here so that other modules can import them
 without pulling in heavy run-time dependencies such as *docker*.
 """
+
 from __future__ import annotations
 
-import os
-import socket
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -99,21 +97,22 @@ def cleanup_temp_files(project_dir: Path | str) -> None:
 
 def render_template(template_content: str, variables: dict) -> str:
     """Render a Jinja2 template with the given variables.
-    
+
     Args:
         template_content: The template string to render
         variables: Dictionary of variables to substitute in the template
-        
+
     Returns:
         The rendered template string
     """
     try:
         from jinja2 import Template
+
         template = Template(template_content)
         return template.render(**variables)
     except ImportError:
         # Fallback to basic string substitution if Jinja2 is not available
         result = template_content
         for key, value in variables.items():
-            result = result.replace(f'{{{{ {key} }}}}', str(value))
+            result = result.replace(f"{{{{ {key} }}}}", str(value))
         return result

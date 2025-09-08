@@ -5,7 +5,7 @@ import subprocess
 import time
 import shutil
 from pathlib import Path
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, Dict
 
 import click
 from rich.console import Console
@@ -25,8 +25,11 @@ from .utils import find_compose_file
 from dotenv import dotenv_values
 from .preflight import PreflightChecker
 from .hosts_manager import HostsManager
-from .cli_helpers.verification import verify_domain_access, test_url_with_curl
-from .cli_helpers.display import display_running_services, display_success, display_warning, display_error
+from .cli_helpers.verification import verify_domain_access
+from .cli_helpers.display import (
+    display_running_services,
+    display_error,
+)
 from .performance_analyzer import PerformanceAnalyzer
 from .log_config import setup_logging
 
@@ -34,7 +37,8 @@ __all__ = ["cli"]
 
 console = Console()
 
-logger = logging.getLogger('dynadock')
+logger = logging.getLogger("dynadock")
+
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
@@ -59,16 +63,22 @@ logger = logging.getLogger('dynadock')
     help="Enable verbose logging output.",
 )
 @click.pass_context
-def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bool) -> None:
+def cli(
+    ctx: click.Context, compose_file: str | None, env_file: str, verbose: bool
+) -> None:
     """DynaDock – Dynamic docker-compose orchestrator with TLS & Caddy love."""
     setup_logging(verbose)
-    
-    logger.info(f"🚀 DynaDock CLI started - compose_file: {compose_file}, env_file: {env_file}")
+
+    logger.info(
+        f"🚀 DynaDock CLI started - compose_file: {compose_file}, env_file: {env_file}"
+    )
     ctx.ensure_object(dict)
     if compose_file is None:
         compose_file = find_compose_file()
         if compose_file is None:
-            console.print("[red]Error: could not locate a docker-compose YAML file.[/red]")
+            console.print(
+                "[red]Error: could not locate a docker-compose YAML file.[/red]"
+            )
             sys.exit(1)
 
     compose_path = Path(compose_file).resolve()
@@ -81,11 +91,22 @@ def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bo
 
 # Function moved to cli_helpers.display module
 
+
 @cli.command()
-@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
-@click.option("--reload", is_flag=True, help="Reload configuration and restart if already running.")
-@click.option("--start-port", "-p", default=8000, type=int, help="Starting port for allocation")
-@click.option("--enable-tls", is_flag=True, help="Enable TLS with an internal CA via Caddy")
+@click.option(
+    "--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains."
+)
+@click.option(
+    "--reload",
+    is_flag=True,
+    help="Reload configuration and restart if already running.",
+)
+@click.option(
+    "--start-port", "-p", default=8000, type=int, help="Starting port for allocation"
+)
+@click.option(
+    "--enable-tls", is_flag=True, help="Enable TLS with an internal CA via Caddy"
+)
 @click.option(
     "--cors-origins",
     "-c",
@@ -93,13 +114,44 @@ def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bo
     help="Additional CORS allowed origins (can be passed multiple times).",
 )
 @click.option("--detach", is_flag=True, help="Run in background without following logs")
-@click.option("--manage-hosts", is_flag=True, help="Also write fallback entries into /etc/hosts (requires sudo)")
-@click.option("--lan-visible", is_flag=True, help="Create LAN-visible virtual IPs (requires sudo, no DNS setup needed)")
-@click.option("--network-interface", help="Network interface for LAN-visible mode (auto-detected if not specified)")
-@click.option("--auto-fix", is_flag=True, help="Attempt automatic preflight fixes (containers, DNS cache)")
-@click.option("--strict-health", is_flag=True, help="Fail and stop all services if health verification fails")
-@click.option("--health-retries", default=3, show_default=True, help="Retries for post-start health verification", type=int)
-@click.option("--health-wait", default=1.0, show_default=True, help="Initial wait between health retries (seconds)", type=float)
+@click.option(
+    "--manage-hosts",
+    is_flag=True,
+    help="Also write fallback entries into /etc/hosts (requires sudo)",
+)
+@click.option(
+    "--lan-visible",
+    is_flag=True,
+    help="Create LAN-visible virtual IPs (requires sudo, no DNS setup needed)",
+)
+@click.option(
+    "--network-interface",
+    help="Network interface for LAN-visible mode (auto-detected if not specified)",
+)
+@click.option(
+    "--auto-fix",
+    is_flag=True,
+    help="Attempt automatic preflight fixes (containers, DNS cache)",
+)
+@click.option(
+    "--strict-health",
+    is_flag=True,
+    help="Fail and stop all services if health verification fails",
+)
+@click.option(
+    "--health-retries",
+    default=3,
+    show_default=True,
+    help="Retries for post-start health verification",
+    type=int,
+)
+@click.option(
+    "--health-wait",
+    default=1.0,
+    show_default=True,
+    help="Initial wait between health retries (seconds)",
+    type=float,
+)
 @click.pass_context
 def up(  # noqa: D401
     ctx: click.Context,
@@ -132,18 +184,24 @@ def up(  # noqa: D401
         duration = current_time - last_step_time
         logger.info(f"TIMER: Step '{step_name}' finished in {duration:.2f}s")
         last_step_time = current_time
-    # ------------------
 
+    # ------------------
 
     docker_manager = DockerManager(compose_file, project_dir, env_file)
     env_generator = EnvGenerator(env_file)
-    caddy_config = CaddyConfig(project_dir=str(project_dir), domain=domain, enable_tls=enable_tls)
+    caddy_config = CaddyConfig(
+        project_dir=str(project_dir), domain=domain, enable_tls=enable_tls
+    )
     network_manager = NetworkManager(project_dir)
-    lan_network_manager = LANNetworkManager(project_dir, network_interface) if lan_visible else None
+    lan_network_manager = (
+        LANNetworkManager(project_dir, network_interface) if lan_visible else None
+    )
     dns_manager = DnsManager(project_dir, domain or "dynadock.lan")
     hosts_manager = HostsManager(project_dir)
 
-    with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
+    with Progress(
+        SpinnerColumn(), TextColumn("{task.description}"), console=console
+    ) as progress:
         task = progress.add_task("Initializing…", total=8)
 
         progress.update(task, advance=1, description="Running preflight checks…")
@@ -153,7 +211,9 @@ def up(  # noqa: D401
         if preflight_report.errors:
             console.print("\n[red]❌ Preflight checks failed with errors:[/red]")
             console.print(preflight_report.pretty())
-            console.print("\n[yellow]Please resolve the issues above and try again.[/yellow]")
+            console.print(
+                "\n[yellow]Please resolve the issues above and try again.[/yellow]"
+            )
             raise click.Abort()
 
         if preflight_report.warnings:
@@ -169,24 +229,36 @@ def up(  # noqa: D401
         allocated_ports = docker_manager.allocate_ports(services, start_port)
         log_step_duration("Allocating ports")
 
-        progress.update(task, advance=1, description=f"Setting up networking for domain '{domain}'…")
+        progress.update(
+            task, advance=1, description=f"Setting up networking for domain '{domain}'…"
+        )
         dns_ok = True
         allocated_ips: Dict[str, str] = {}
-        
+
         if lan_visible:
             # Use LAN-visible virtual IPs mode
-            console.print("[cyan]Setting up LAN-visible virtual IPs (requires sudo)…[/cyan]")
+            console.print(
+                "[cyan]Setting up LAN-visible virtual IPs (requires sudo)…[/cyan]"
+            )
             if not lan_network_manager:
-                display_error("LAN network manager not initialized despite --lan-visible flag.")
+                display_error(
+                    "LAN network manager not initialized despite --lan-visible flag."
+                )
                 raise click.Abort()
             try:
                 allocated_ips = lan_network_manager.setup_services_lan(services)
-                console.print(f"[green]✓ Created {len(allocated_ips)} LAN-visible IPs[/green]")
+                console.print(
+                    f"[green]✓ Created {len(allocated_ips)} LAN-visible IPs[/green]"
+                )
                 # Detect cross-host IP/port conflicts before proceeding
                 if allocated_ips:
-                    conflicts = lan_network_manager.detect_conflicts(allocated_ips, allocated_ports)
+                    conflicts = lan_network_manager.detect_conflicts(
+                        allocated_ips, allocated_ports
+                    )
                     if conflicts:
-                        console.print("\n[bold red]❌ LAN IP/port conflicts detected[/bold red]")
+                        console.print(
+                            "\n[bold red]❌ LAN IP/port conflicts detected[/bold red]"
+                        )
                         table = Table("Service", "IP", "Port", "Issue")
                         for svc, info in conflicts.items():
                             ip = allocated_ips.get(svc, "-")
@@ -199,9 +271,13 @@ def up(  # noqa: D401
                                 issues.append("Port in use on other host")
                             if info.get("port_open"):
                                 issues.append("Port already open at IP")
-                            table.add_row(svc, ip, str(port), "; ".join(issues) or "Unknown")
+                            table.add_row(
+                                svc, ip, str(port), "; ".join(issues) or "Unknown"
+                            )
                         console.print(table)
-                        console.print("[yellow]Hint: choose different IPs or ports, or stop the conflicting host.[/yellow]")
+                        console.print(
+                            "[yellow]Hint: choose different IPs or ports, or stop the conflicting host.[/yellow]"
+                        )
                         raise click.Abort()
                 # No DNS needed - direct IP access
                 dns_ok = True
@@ -214,7 +290,9 @@ def up(  # noqa: D401
             try:
                 allocated_ips = network_manager.setup_interfaces(services, domain)
                 if not allocated_ips:  # Script failed, fall back to hosts mode
-                    console.print("[yellow]Virtual network setup failed, falling back to /etc/hosts mode[/yellow]")
+                    console.print(
+                        "[yellow]Virtual network setup failed, falling back to /etc/hosts mode[/yellow]"
+                    )
                     dns_ok = False
                 else:
                     # Start local DNS resolver for *.domain -> service IPs
@@ -224,17 +302,29 @@ def up(  # noqa: D401
                         console.print("[green]✓ Local DNS ready[/green]")
                     except Exception as dns_err:  # noqa: BLE001
                         dns_ok = False
-                        console.print(f"[yellow]⚠ Local DNS could not be started: {dns_err}[/yellow]")
-                        console.print("[yellow]Falling back to /etc/hosts (requires sudo)…[/yellow]")
+                        console.print(
+                            f"[yellow]⚠ Local DNS could not be started: {dns_err}[/yellow]"
+                        )
+                        console.print(
+                            "[yellow]Falling back to /etc/hosts (requires sudo)…[/yellow]"
+                        )
             except Exception as e:
-                console.print(f"[yellow]Network setup error: {e}, falling back to /etc/hosts mode[/yellow]")
+                console.print(
+                    f"[yellow]Network setup error: {e}, falling back to /etc/hosts mode[/yellow]"
+                )
                 dns_ok = False
         else:
-            console.print("[yellow]Using /etc/hosts mode (--manage-hosts specified)[/yellow]")
+            console.print(
+                "[yellow]Using /etc/hosts mode (--manage-hosts specified)[/yellow]"
+            )
             dns_ok = False
-        log_step_duration(f"Setting up networking (lan_visible={lan_visible}, manage_hosts={manage_hosts})")
+        log_step_duration(
+            f"Setting up networking (lan_visible={lan_visible}, manage_hosts={manage_hosts})"
+        )
 
-        progress.update(task, advance=1, description="Generating environment variables…")
+        progress.update(
+            task, advance=1, description="Generating environment variables…"
+        )
         env_vars = env_generator.generate(
             services=services,
             ports=allocated_ports,
@@ -245,12 +335,22 @@ def up(  # noqa: D401
         log_step_duration("Generating environment variables")
 
         # Optional hosts fallback (skip for LAN-visible mode as IPs are directly accessible)
-        use_hosts = (manage_hosts or (shutil.which("resolvectl") is None) or (not locals().get("dns_ok", True))) and not lan_visible
+        use_hosts = (
+            manage_hosts
+            or (shutil.which("resolvectl") is None)
+            or (not locals().get("dns_ok", True))
+        ) and not lan_visible
         if use_hosts:
-            console.print("[yellow]Applying /etc/hosts fallback entries (requires sudo)…[/yellow]")
+            console.print(
+                "[yellow]Applying /etc/hosts fallback entries (requires sudo)…[/yellow]"
+            )
             try:
                 # If no virtual IPs allocated (--manage-hosts mode), use localhost for all services
-                hosts_ips = allocated_ips if allocated_ips else {service: "127.0.0.1" for service in services}
+                hosts_ips = (
+                    allocated_ips
+                    if allocated_ips
+                    else {service: "127.0.0.1" for service in services}
+                )
                 hosts_manager.apply(hosts_ips, domain)
                 console.print("[green]✓ /etc/hosts updated[/green]")
             except Exception as he:  # noqa: BLE001
@@ -261,10 +361,14 @@ def up(  # noqa: D401
         caddy_config.generate_minimal()
         try:
             caddy_config.start_caddy()
-        except subprocess.CalledProcessError as ce:
+        except subprocess.CalledProcessError:
             console.print("[red]\nFailed to start Caddy reverse-proxy.[/red]")
-            console.print("[yellow]Common causes: Ports 80/443 are in use by another process.[/yellow]")
-            console.print("[dim]Tip: Free the ports or stop the conflicting service, then try again.[/dim]")
+            console.print(
+                "[yellow]Common causes: Ports 80/443 are in use by another process.[/yellow]"
+            )
+            console.print(
+                "[dim]Tip: Free the ports or stop the conflicting service, then try again.[/dim]"
+            )
             # Cleanup partial setup
             try:
                 dns_manager.stop_dns()
@@ -288,12 +392,12 @@ def up(  # noqa: D401
                 if lan_network_manager:
                     lan_network_manager.cleanup_all()
             raise click.Abort()
-        
+
         log_step_duration("Starting application containers")
 
         # Wait for services with health checks to be healthy
         services_with_health_checks = [
-            svc for svc, cfg in services.items() if 'healthcheck' in cfg
+            svc for svc, cfg in services.items() if "healthcheck" in cfg
         ]
         if services_with_health_checks:
             docker_manager.wait_for_healthy_services(services_with_health_checks)
@@ -310,23 +414,34 @@ def up(  # noqa: D401
         log_step_duration("Configuring reverse-proxy")
 
     console.print("\n[bold green]✓ All services started![/bold green]\n")
-    
+
     # Special handling for LAN-visible networking
     if lan_visible and lan_network_manager and allocated_ips:
         console.print("\n[bold green]✅ LAN-visible services ready![/bold green]")
-        console.print("\n[bold cyan]🌐 Services accessible from ANY device on your network:[/bold cyan]\n")
-        
-        service_urls = lan_network_manager.get_service_urls(allocated_ips, allocated_ports)
+        console.print(
+            "\n[bold cyan]🌐 Services accessible from ANY device on your network:[/bold cyan]\n"
+        )
+
+        service_urls = lan_network_manager.get_service_urls(
+            allocated_ips, allocated_ports
+        )
         for service, url in service_urls.items():
             console.print(f"   🔗 {service}: [link]{url}[/link]")
-        
-        console.print("\n[dim]💡 No DNS setup required - access directly from phones, tablets, other computers![/dim]")
-        
+
+        console.print(
+            "\n[dim]💡 No DNS setup required - access directly from phones, tablets, other computers![/dim]"
+        )
+
         # Test LAN connectivity
         console.print("\n[bold blue]Testing LAN connectivity:[/bold blue]")
-        connectivity_results = lan_network_manager.test_connectivity(allocated_ips, allocated_ports)
+        connectivity_results = lan_network_manager.test_connectivity(
+            allocated_ips, allocated_ports
+        )
         all_ok = all(connectivity_results.values())
-        results = {service: {"domain": result, "localhost": True} for service, result in connectivity_results.items()}
+        results = {
+            service: {"domain": result, "localhost": True}
+            for service, result in connectivity_results.items()
+        }
     else:
         console.print("\n[bold blue]Verifying service accessibility:[/bold blue]")
         console.print("[dim]Testing with curl...[/dim]\n")
@@ -337,13 +452,21 @@ def up(  # noqa: D401
             enable_tls=enable_tls,
             retries=health_retries,
             initial_wait=health_wait,
-            ip_map=allocated_ips
+            ip_map=allocated_ips,
         )
 
     if strict_health and not all_ok:
-        failed = [svc for svc, res in results.items() if not (res["domain"] or res["localhost"]) ]
-        console.print(f"\n[red]Health verification failed for: {', '.join(failed)}[/red]")
-        console.print("[yellow]Stopping all services due to --strict-health...[/yellow]")
+        failed = [
+            svc
+            for svc, res in results.items()
+            if not (res["domain"] or res["localhost"])
+        ]
+        console.print(
+            f"\n[red]Health verification failed for: {', '.join(failed)}[/red]"
+        )
+        console.print(
+            "[yellow]Stopping all services due to --strict-health...[/yellow]"
+        )
         try:
             docker_manager.down()
         finally:
@@ -354,10 +477,10 @@ def up(  # noqa: D401
                 if lan_network_manager:
                     lan_network_manager.cleanup_all()
         raise click.Abort()
-    
+
     status_by_service = docker_manager.ps()
     display_running_services(allocated_ports, domain, enable_tls, status_by_service)
-    
+
     total_duration = time.time() - start_time
     logger.info(f"TIMER: Total 'up' command duration: {total_duration:.2f}s")
 
@@ -383,13 +506,28 @@ def up(  # noqa: D401
                 pass  # LAN networking may not have been used
             console.print("\n[green]✓ All services stopped.[/green]")
 
+
 @cli.command()
-@click.option("--remove-volumes", "-v", is_flag=True, help="Remove docker volumes as well.")
-@click.option("--remove-images", is_flag=True, help="Remove images (docker-compose --rmi all)")
-@click.option("--prune", is_flag=True, help="Shortcut for --remove-volumes --remove-images")
-@click.option("--remove-hosts", is_flag=True, help="Remove dynadock entries from /etc/hosts")
+@click.option(
+    "--remove-volumes", "-v", is_flag=True, help="Remove docker volumes as well."
+)
+@click.option(
+    "--remove-images", is_flag=True, help="Remove images (docker-compose --rmi all)"
+)
+@click.option(
+    "--prune", is_flag=True, help="Shortcut for --remove-volumes --remove-images"
+)
+@click.option(
+    "--remove-hosts", is_flag=True, help="Remove dynadock entries from /etc/hosts"
+)
 @click.pass_context
-def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: bool, remove_hosts: bool) -> None:
+def down(
+    ctx: click.Context,
+    remove_volumes: bool,
+    remove_images: bool,
+    prune: bool,
+    remove_hosts: bool,
+) -> None:
     """Stop and remove all services including the reverse-proxy."""
     compose_file: str = ctx.obj["compose_file"]
     project_dir: Path = ctx.obj["project_dir"]
@@ -409,10 +547,16 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
     enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
     enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
 
-    caddy_config = CaddyConfig(project_dir=str(project_dir), domain=domain or "dynadock.lan", enable_tls=enable_tls)
+    caddy_config = CaddyConfig(
+        project_dir=str(project_dir),
+        domain=domain or "dynadock.lan",
+        enable_tls=enable_tls,
+    )
     dns_manager = DnsManager(project_dir, domain or "dynadock.lan")
 
-    with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
+    with Progress(
+        SpinnerColumn(), TextColumn("{task.description}"), console=console
+    ) as progress:
         task = progress.add_task("Stopping services…", total=5)
         progress.update(task, advance=1, description="Stopping application containers…")
         docker_manager.down(remove_volumes=remove_volumes, remove_images=remove_images)
@@ -422,20 +566,32 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
         try:
             dns_manager.stop_dns()
         except Exception:
-            console.print("[yellow]Warning: Could not stop local DNS resolver.[/yellow]")
+            console.print(
+                "[yellow]Warning: Could not stop local DNS resolver.[/yellow]"
+            )
         progress.update(task, advance=1, description="Tearing down networks…")
         try:
             if domain:
                 network_manager.teardown_interfaces(domain)
         except subprocess.CalledProcessError as e:
-            console.print(f"\n[bold yellow]Warning: Could not tear down virtual network interfaces.[/bold yellow]")
+            console.print(
+                "\n[bold yellow]Warning: Could not tear down virtual network interfaces.[/bold yellow]"
+            )
             console.print(f"[yellow]  Command: {' '.join(e.cmd)}[/yellow]")
             console.print(f"[yellow]  Exit Code: {e.returncode}[/yellow]")
-            console.print(f"[yellow]  Stderr: {e.stderr.decode().strip() if e.stderr else 'N/A'}[/yellow]")
-            console.print("[dim]  This may happen if the 'up' command failed prematurely. Manual cleanup may be required.[/dim]")
+            console.print(
+                f"[yellow]  Stderr: {e.stderr.decode().strip() if e.stderr else 'N/A'}[/yellow]"
+            )
+            console.print(
+                "[dim]  This may happen if the 'up' command failed prematurely. Manual cleanup may be required.[/dim]"
+            )
         except FileNotFoundError:
-            console.print(f"\n[bold red]Error: 'manage_veth.sh' script not found.[/bold red]")
-            console.print("[dim]  Please ensure the 'scripts' directory is in the project root.[/dim]")
+            console.print(
+                "\n[bold red]Error: 'manage_veth.sh' script not found.[/bold red]"
+            )
+            console.print(
+                "[dim]  Please ensure the 'scripts' directory is in the project root.[/dim]"
+            )
 
         # Clean up LAN networking
         try:
@@ -449,16 +605,20 @@ def down(ctx: click.Context, remove_volumes: bool, remove_images: bool, prune: b
                 hosts_manager.remove()
                 console.print("[green]✓ /etc/hosts entries removed[/green]")
             except Exception:
-                console.print("[yellow]Warning: Could not remove /etc/hosts entries[/yellow]")
+                console.print(
+                    "[yellow]Warning: Could not remove /etc/hosts entries[/yellow]"
+                )
         progress.update(task, advance=1, description="✓ Cleanup complete!")
 
     console.print("[green]All services have been stopped and removed.[/green]")
+
 
 @cli.command(name="status")
 @click.pass_context
 def status(ctx: click.Context) -> None:  # noqa: D401
     """Alias for ps command."""
     ctx.invoke(ps)
+
 
 @cli.command()
 @click.pass_context
@@ -496,89 +656,22 @@ def ps(ctx: click.Context) -> None:  # noqa: D401
     domain_val = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
     enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
     enable_tls_val = bool(enable_tls_str and enable_tls_str.lower() == "true")
-    display_running_services(ports, domain_val or "dynadock.lan", enable_tls_val, status_map)
+    display_running_services(
+        ports, domain_val or "dynadock.lan", enable_tls_val, status_map
+    )
+
 
 @cli.command()
 @click.pass_context
 def logs(ctx: click.Context) -> None:  # noqa: D401
     """Tail logs from all services (docker-compose logs -f)."""
     compose_file = ctx.obj["compose_file"]
-    project_dir = ctx.obj["project_dir"]
-    docker_manager = DockerManager(compose_file, project_dir)
-    docker_manager.logs()
-
-@cli.command(name="exec")
-@click.option("--service", "-s", required=True, help="Service name (as in compose file)")
-@click.option("--command", "-c", default="/bin/sh", help="Command to run inside the container")
-@click.pass_context
-def _exec(ctx: click.Context, service: str, command: str) -> None:  # noqa: D401
-    """Execute COMMAND in a running container."""
-    compose_file = ctx.obj["compose_file"]
-    project_dir = ctx.obj["project_dir"]
-    docker_manager = DockerManager(compose_file, project_dir)
-    docker_manager.exec(service, command)
-
-
-@cli.command()
-@click.pass_context
-@click.option("--stop-on-fail", is_flag=True, help="Stop all services if health fails")
-def health(ctx: click.Context, stop_on_fail: bool) -> None:  # noqa: D401
-    """Run health checks against all services using current .env.dynadock."""
-    env_file: str = ctx.obj["env_file"]
-    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    if not env_values:
-        console.print("[red]No .env.dynadock found. Run `up` first.[/red]")
-        raise SystemExit(1)
-
-    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
-    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
-    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
-    protocol = "https" if enable_tls else "http"
-
-    ports: Dict[str, int] = {}
-    for key, val in env_values.items():
-        if key.endswith("_PORT"):
-            service = key[:-5].lower()
-            if val:
-                try:
-                    ports[service] = int(val)
-                except (ValueError, TypeError):
-                    continue
-
-    if not ports:
-        console.print("[red]No service ports found in .env.dynadock.[/red]")
-        raise SystemExit(1)
-
-    console.print("[bold blue]\nHealth checking services...[/bold blue]")
-    all_ok = True
-    for service, port in ports.items():
-        domain_url = f"{protocol}://{service}.{domain}"
-        local_url = f"http://localhost:{port}"
-        ok_domain = test_url_with_curl(domain_url, service, "domain")
-        ok_local = test_url_with_curl(local_url, service, "localhost")
-        if not (ok_domain or ok_local):
-            all_ok = False
-
-    if all_ok:
-        console.print("\n[green]All services healthy.[/green]")
-        raise SystemExit(0)
-    else:
-        console.print("\n[red]One or more services are unhealthy or unreachable.[/red]")
-        if stop_on_fail:
-            compose_file: str = ctx.obj["compose_file"]
-            project_dir: Path = ctx.obj["project_dir"]
-            env_file: str = ctx.obj["env_file"]
-            docker_manager = DockerManager(compose_file, project_dir, env_file)
-            console.print("[yellow]Stopping services (--stop-on-fail)...[/yellow]")
-            try:
-                docker_manager.down()
-            except Exception:
-                pass
-        raise SystemExit(2)
 
 
 @cli.command(name="net-diagnose")
-@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
+@click.option(
+    "--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains."
+)
 @click.pass_context
 def net_diagnose(ctx: click.Context, domain: str) -> None:
     """Diagnose Dynadock virtual networking and DNS setup."""
@@ -592,99 +685,10 @@ def net_diagnose(ctx: click.Context, domain: str) -> None:
     console.print(report)
 
 
-
-
-@cli.command()
-@click.option("--interval", "-i", default=5, help="Interval in seconds to check services.", type=int)
-@click.pass_context
-def watch(ctx: click.Context, interval: int) -> None:
-    """Continuously monitor the health of running services."""
-    env_file: str = ctx.obj["env_file"]
-    project_dir: Path = ctx.obj["project_dir"]
-
-    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
-    if not env_values:
-        console.print("[red]No .env.dynadock found. Run `up` first.[/red]")
-        raise SystemExit(1)
-
-    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
-    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
-    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
-    protocol = "https" if enable_tls else "http"
-
-    docker_manager = DockerManager(ctx.obj["compose_file"], project_dir, env_file)
-    services_config = docker_manager.parse_compose()
-
-    ports: Dict[str, int] = {}
-    for key, val in env_values.items():
-        if key.endswith("_PORT") and val:
-            try:
-                ports[key[:-5].lower()] = int(val)
-            except (ValueError, TypeError):
-                pass
-
-    def get_service_urls() -> Dict[str, str]:
-        urls = {}
-        for service, port in ports.items():
-            service_config = services_config.get(service, {})
-            raw_labels = service_config.get('labels', [])
-            labels = {}
-            if isinstance(raw_labels, list):
-                for label_str in raw_labels:
-                    if '=' in label_str:
-                        k, v = label_str.split('=', 1)
-                        labels[k] = v
-            elif isinstance(raw_labels, dict):
-                labels = raw_labels
-            
-            if labels.get('dynadock.protocol') == 'http':
-                urls[service] = f"{protocol}://{service}.{domain}"
-        return urls
-
-    service_urls = get_service_urls()
-    if not service_urls:
-        console.print("[yellow]No HTTP services found to monitor.[/yellow]")
-        return
-
-    def generate_table() -> Table:
-        table = Table(title="DynaDock Service Health")
-        table.add_column("Service", justify="left", style="cyan", no_wrap=True)
-        table.add_column("URL", style="magenta")
-        table.add_column("Status", justify="center")
-        table.add_column("Timestamp", justify="right", style="green")
-
-        # Suppress curl output for watch command
-        original_test_url = test_url_with_curl
-        def quiet_test_url(url: str, service: str, access_type: str) -> bool:
-            # A simplified version of test_url_with_curl that doesn't print
-            try:
-                cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-k", "--connect-timeout", "2", "-m", "4", url]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    http_code = result.stdout.strip()
-                    return http_code.isdigit() and 200 <= int(http_code) < 300
-                return False
-            except Exception:
-                return False
-
-        for service, url in service_urls.items():
-            is_healthy = quiet_test_url(url, service, "domain")
-            status_icon = "[green]✅ Healthy[/green]" if is_healthy else "[red]❌ Unhealthy[/red]"
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-            table.add_row(service, url, status_icon, timestamp)
-        return table
-
-    try:
-        with Live(generate_table(), console=console, screen=True, auto_refresh=False) as live:
-            while True:
-                time.sleep(interval)
-                live.update(generate_table(), refresh=True)
-    except KeyboardInterrupt:
-        console.print("\n[dim]Stopping service monitor...[/dim]")
-
-
 @cli.command(name="net-repair")
-@click.option("--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains.")
+@click.option(
+    "--domain", "-d", default="dynadock.lan", help="Base domain for sub-domains."
+)
 @click.pass_context
 def net_repair(ctx: click.Context, domain: str) -> None:
     """Attempt to auto-repair Dynadock virtual networking and DNS."""
@@ -699,9 +703,15 @@ def net_repair(ctx: click.Context, domain: str) -> None:
 
 
 @cli.command(name="lan-test")
-@click.option("--interface", "-i", help="Network interface (auto-detected if not specified)")
-@click.option("--num-ips", "-n", default=3, help="Number of test IPs to create", type=int)
-@click.option("--port", "-p", default=8000, help="Starting port for test servers", type=int)
+@click.option(
+    "--interface", "-i", help="Network interface (auto-detected if not specified)"
+)
+@click.option(
+    "--num-ips", "-n", default=3, help="Number of test IPs to create", type=int
+)
+@click.option(
+    "--port", "-p", default=8000, help="Starting port for test servers", type=int
+)
 @click.pass_context
 def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> None:
     """Test LAN-visible networking functionality (requires sudo)."""
@@ -729,7 +739,9 @@ def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> Non
         raise click.Abort()
     console.print(f"[green]✅ Found {len(available_ips)} available IPs[/green]")
 
-    test_services: dict[str, dict] = {f"test{i+1}": {} for i in range(len(available_ips))}
+    test_services: dict[str, dict] = {
+        f"test{i+1}": {} for i in range(len(available_ips))
+    }
     try:
         service_ips = lan_manager.setup_services_lan(test_services)
     except Exception as e:
@@ -747,10 +759,13 @@ def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> Non
 
     console.print("\n[bold blue]🧪 Testing Connectivity[/bold blue]")
     connectivity_results = lan_manager.test_connectivity(service_ips, port_map)
-    if all(connectivity_results.values()):
+    all_ok = all(connectivity_results.values())
+    if all_ok:
         console.print("\n[bold green]🎉 All test IPs are reachable![/bold green]")
     else:
-        console.print("\n[yellow]⚠️ Some IPs are not reachable - check network configuration[/yellow]")
+        console.print(
+            "\n[yellow]⚠️ Some IPs are not reachable - check network configuration[/yellow]"
+        )
 
     console.print("\n[yellow]⚠️ Cleaning up test IPs in 5 seconds...[/yellow]")
     try:
@@ -759,15 +774,27 @@ def lan_test(ctx: click.Context, interface: str, num_ips: int, port: int) -> Non
         console.print("\n[dim]Cleaning up...[/dim]")
     finally:
         lan_manager.cleanup_all()
-        console.print("[green]✅ Test cleanup completed[/green]")
+        console.print("[green]✓ Test cleanup completed[/green]")
 
 
 @cli.command(name="check-conflicts")
-@click.option("--lan-visible", is_flag=True, help="Check conflicts for LAN-visible mode (cross-host IP/port)")
-@click.option("--start-port", "-p", default=8000, type=int, help="Starting port for allocation")
-@click.option("--network-interface", "-i", help="Network interface to use for LAN-visible check (auto-detected if not specified)")
+@click.option(
+    "--lan-visible",
+    is_flag=True,
+    help="Check conflicts for LAN-visible mode (cross-host IP/port)",
+)
+@click.option(
+    "--start-port", "-p", default=8000, type=int, help="Starting port for allocation"
+)
+@click.option(
+    "--network-interface",
+    "-i",
+    help="Network interface to use for LAN-visible check (auto-detected if not specified)",
+)
 @click.pass_context
-def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, network_interface: str) -> None:
+def check_conflicts(
+    ctx: click.Context, lan_visible: bool, start_port: int, network_interface: str
+) -> None:
     """Dry-run: detect potential IP/port conflicts before 'up' (no IPs are added)."""
     compose_file: str = ctx.obj["compose_file"]
     env_file: str = ctx.obj["env_file"]
@@ -781,14 +808,20 @@ def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, netw
 
     allocated_ports = docker_manager.allocate_ports(services, start_port)
 
-    console.print("\n[bold blue]🔎 Checking for potential conflicts (dry-run)...[/bold blue]")
+    console.print(
+        "\n[bold blue]🔎 Checking for potential conflicts (dry-run)...[/bold blue]"
+    )
 
     if lan_visible:
         # LAN-visible: propose candidate IPs without configuring them
         lan_network_manager = LANNetworkManager(project_dir, network_interface)
-        current_ip, network_base, cidr, broadcast = lan_network_manager.get_network_details()
+        current_ip, network_base, cidr, broadcast = (
+            lan_network_manager.get_network_details()
+        )
         if not network_base or not cidr:
-            console.print("[red]Could not detect network details for LAN-visible check.[/red]")
+            console.print(
+                "[red]Could not detect network details for LAN-visible check.[/red]"
+            )
             raise SystemExit(2)
 
         service_names = list(services.keys())
@@ -796,23 +829,36 @@ def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, netw
         candidate_ips = lan_network_manager.find_free_ips(network_base, cidr, needed)
 
         if len(candidate_ips) < needed:
-            console.print(f"[yellow]Warning: Only found {len(candidate_ips)} candidate IPs for {needed} services.[/yellow]")
+            console.print(
+                f"[yellow]Warning: Only found {len(candidate_ips)} candidate IPs for {needed} services.[/yellow]"
+            )
 
         # Map services to candidate IPs (best-effort)
-        service_ip_map = {svc: candidate_ips[i] for i, svc in enumerate(service_names) if i < len(candidate_ips)}
+        service_ip_map = {
+            svc: candidate_ips[i]
+            for i, svc in enumerate(service_names)
+            if i < len(candidate_ips)
+        }
 
         if not service_ip_map:
-            console.print("[red]No candidate IPs available to check for conflicts.[/red]")
+            console.print(
+                "[red]No candidate IPs available to check for conflicts.[/red]"
+            )
             raise SystemExit(2)
 
         # Proactively stimulate ARP entries to improve remote MAC detection
         for ip in service_ip_map.values():
             try:
                 import subprocess as _sub
-                _sub.run(f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2)
+
+                _sub.run(
+                    f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2
+                )
             except Exception:
-                pass # Ignore ping failures, this is just a best-effort ARP stimulation
-        conflicts = lan_network_manager.detect_conflicts(service_ip_map, allocated_ports)
+                pass  # Ignore ping failures, this is just a best-effort ARP stimulation
+        conflicts = lan_network_manager.detect_conflicts(
+            service_ip_map, allocated_ports
+        )
         if conflicts:
             console.print("\n[bold red]❌ Potential conflicts detected[/bold red]")
             table = Table("Service", "IP (candidate)", "Port", "Issue")
@@ -829,32 +875,342 @@ def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, netw
                     issues.append("Port already open at IP")
                 table.add_row(svc, ip, str(port), "; ".join(issues) or "Unknown")
             console.print(table)
-            console.print("[yellow]Tip: rerun with different start port or ensure other hosts use different IP ranges.[/yellow]")
+            console.print(
+                "[yellow]Tip: rerun with different start port or ensure other hosts use different IP ranges.[/yellow]"
+            )
             raise SystemExit(3)
 
         console.print("[green]✓ No conflicts detected for LAN-visible mode.[/green]")
         raise SystemExit(0)
 
     # Non-LAN: check local port availability only (cross-host conflicts not applicable)
-    console.print("[dim]LAN-visible flag not provided; checking only local port availability...[/dim]")
+    console.print(
+        "[dim]LAN-visible flag not provided; checking only local port availability...[/dim]"
+    )
     import socket as _socket
+
     has_conflict = False
     for service, port in allocated_ports.items():
         with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as s:
-            if s.connect_ex(('127.0.0.1', port)) == 0:
-                console.print(f"[red]❌ Port {port} for service '{service}' is already in use.[/red]")
+            if s.connect_ex(("127.0.0.1", port)) == 0:
+                console.print(
+                    f"[red]❌ Port {port} for service '{service}' is already in use.[/red]"
+                )
                 has_conflict = True
     if has_conflict:
-        console.print("[yellow]Tip: Stop the process using the conflicting port(s) or change start port with -p.[/yellow]")
-                busy.append((svc, port))
-        finally:
-            s.close()
-    if busy:
-        console.print("[bold red]\n❌ Local ports already in use[/bold red]")
-        table = Table("Service", "Port")
-        for svc, port in busy:
-            table.add_row(svc, str(port))
-        console.print(table)
+        console.print(
+            "[yellow]Tip: Stop the process using the conflicting port(s) or change start port with -p.[/yellow]"
+        )
         raise SystemExit(4)
-    console.print("[green]✓ Local ports appear free.[/green]")
+
+    console.print("[green]✓ No local port conflicts detected.[/green]")
     raise SystemExit(0)
+
+
+@cli.command(name="check-conflicts")
+@click.option(
+    "--lan-visible",
+    is_flag=True,
+    help="Check conflicts for LAN-visible mode (cross-host IP/port)",
+)
+@click.option(
+    "--start-port", "-p", default=8000, type=int, help="Starting port for allocation"
+)
+@click.option(
+    "--network-interface",
+    "-i",
+    help="Network interface to use for LAN-visible check (auto-detected if not specified)",
+)
+@click.pass_context
+def check_conflicts(
+    ctx: click.Context, lan_visible: bool, start_port: int, network_interface: str
+) -> None:
+    """Dry-run: detect potential IP/port conflicts before 'up' (no IPs are added)."""
+    compose_file: str = ctx.obj["compose_file"]
+    env_file: str = ctx.obj["env_file"]
+    project_dir: Path = ctx.obj["project_dir"]
+
+    docker_manager = DockerManager(compose_file, project_dir, env_file)
+    services = docker_manager.parse_compose()
+    if not services:
+        console.print("[red]No services found in compose file.[/red]")
+        raise SystemExit(1)
+
+    allocated_ports = docker_manager.allocate_ports(services, start_port)
+
+    console.print(
+        "\n[bold blue]🔎 Checking for potential conflicts (dry-run)...[/bold blue]"
+    )
+
+    if lan_visible:
+        # LAN-visible: propose candidate IPs without configuring them
+        lan_network_manager = LANNetworkManager(project_dir, network_interface)
+        current_ip, network_base, cidr, broadcast = (
+            lan_network_manager.get_network_details()
+        )
+        if not network_base or not cidr:
+            console.print(
+                "[red]Could not detect network details for LAN-visible check.[/red]"
+            )
+            raise SystemExit(2)
+
+        service_names = list(services.keys())
+        needed = len(service_names)
+        candidate_ips = lan_network_manager.find_free_ips(network_base, cidr, needed)
+
+        if len(candidate_ips) < needed:
+            console.print(
+                f"[yellow]Warning: Only found {len(candidate_ips)} candidate IPs for {needed} services.[/yellow]"
+            )
+
+        # Map services to candidate IPs (best-effort)
+        service_ip_map = {
+            svc: candidate_ips[i]
+            for i, svc in enumerate(service_names)
+            if i < len(candidate_ips)
+        }
+
+        if not service_ip_map:
+            console.print(
+                "[red]No candidate IPs available to check for conflicts.[/red]"
+            )
+            raise SystemExit(2)
+
+        # Proactively stimulate ARP entries to improve remote MAC detection
+        for ip in service_ip_map.values():
+            try:
+                import subprocess as _sub
+
+                _sub.run(
+                    f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2
+                )
+            except Exception:
+                pass  # Ignore ping failures, this is just a best-effort ARP stimulation
+        conflicts = lan_network_manager.detect_conflicts(
+            service_ip_map, allocated_ports
+        )
+        if conflicts:
+            console.print("\n[bold red]❌ Potential conflicts detected[/bold red]")
+            table = Table("Service", "IP (candidate)", "Port", "Issue")
+            for svc, info in conflicts.items():
+                ip = service_ip_map.get(svc, "-")
+                port = allocated_ports.get(svc, 80)
+                issues = []
+                if info.get("ip_in_use_by_other_host"):
+                    mac = info.get("remote_mac", "?")
+                    issues.append(f"IP owned by other host (MAC {mac})")
+                if info.get("port_in_use_by_other_host"):
+                    issues.append("Port in use on other host")
+                if info.get("port_open"):
+                    issues.append("Port already open at IP")
+                table.add_row(svc, ip, str(port), "; ".join(issues) or "Unknown")
+            console.print(table)
+            console.print(
+                "[yellow]Tip: rerun with different start port or ensure other hosts use different IP ranges.[/yellow]"
+            )
+            raise SystemExit(3)
+
+        console.print("[green]✓ No conflicts detected for LAN-visible mode.[/green]")
+        raise SystemExit(0)
+
+    # Non-LAN: check local port availability only (cross-host conflicts not applicable)
+    console.print(
+        "[dim]LAN-visible flag not provided; checking only local port availability...[/dim]"
+    )
+    import socket as _socket
+
+    has_conflict = False
+    for service, port in allocated_ports.items():
+        with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", port)) == 0:
+                console.print(
+                    f"[red]❌ Port {port} for service '{service}' is already in use.[/red]"
+                )
+                has_conflict = True
+    if has_conflict:
+        console.print(
+            "[yellow]Tip: Stop the process using the conflicting port(s) or change start port with -p.[/yellow]"
+        )
+        raise SystemExit(4)
+
+    console.print("[green]✓ No local port conflicts detected.[/green]")
+    raise SystemExit(0)
+
+
+@cli.command()
+@click.option(
+    "--interval",
+    "-i",
+    default=5,
+    help="Interval in seconds to check services.",
+    type=int,
+)
+@click.option(
+    "--expected-text",
+    "-t",
+    help="Text to expect in the response body for a successful health check.",
+)
+@click.pass_context
+def watch(ctx: click.Context, interval: int, expected_text: str | None) -> None:
+    """Continuously monitor the health of running services with enhanced validation."""
+    env_file: str = ctx.obj["env_file"]
+    project_dir: Path = ctx.obj["project_dir"]
+
+    # Setup screenshot directory for response captures
+    screenshot_dir = project_dir / ".dynadock" / "watch_screenshots"
+    if screenshot_dir.exists():
+        shutil.rmtree(screenshot_dir)
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+
+    env_values = dotenv_values(env_file) if Path(env_file).exists() else {}
+    if not env_values:
+        console.print("[red]No .env.dynadock found. Run `up` first.[/red]")
+        raise SystemExit(1)
+
+    domain = env_values.get("DYNADOCK_DOMAIN", "dynadock.lan")
+    enable_tls_str = env_values.get("DYNADOCK_ENABLE_TLS", "false")
+    enable_tls = bool(enable_tls_str and enable_tls_str.lower() == "true")
+    protocol = "https" if enable_tls else "http"
+
+    docker_manager = DockerManager(ctx.obj["compose_file"], project_dir, env_file)
+    services_config = docker_manager.parse_compose()
+
+    ports: Dict[str, int] = {}
+    for key, val in env_values.items():
+        if key.endswith("_PORT") and val:
+            try:
+                ports[key[:-5].lower()] = int(val)
+            except (ValueError, TypeError):
+                pass
+
+    def get_service_urls() -> Dict[str, str]:
+        urls = {}
+        for service, port in ports.items():
+            service_config = services_config.get(service, {})
+            raw_labels = service_config.get("labels", [])
+            labels = {}
+            if isinstance(raw_labels, list):
+                for label_str in raw_labels:
+                    if "=" in label_str:
+                        k, v = label_str.split("=", 1)
+                        labels[k] = v
+            elif isinstance(raw_labels, dict):
+                labels = raw_labels
+
+            if labels.get("dynadock.protocol") == "http":
+                urls[service] = f"{protocol}://{service}.{domain}"
+        return urls
+
+    service_urls = get_service_urls()
+    if not service_urls:
+        console.print("[yellow]No HTTP services found to monitor.[/yellow]")
+        return
+
+    def test_url_with_content_check(url: str, service: str) -> Tuple[bool, str]:
+        """Test URL and optionally validate content. Return (is_healthy, status_msg)"""
+        try:
+            cmd = ["curl", "-s", "-k", "--connect-timeout", "2", "-m", "4", url]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+
+            if result.returncode != 0:
+                return False, "Connection failed"
+
+            # Check HTTP status via separate curl call
+            status_cmd = [
+                "curl",
+                "-s",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                "-k",
+                "--connect-timeout",
+                "2",
+                "-m",
+                "4",
+                url,
+            ]
+            status_result = subprocess.run(
+                status_cmd, capture_output=True, text=True, timeout=5
+            )
+
+            if status_result.returncode != 0:
+                return False, "Status check failed"
+
+            http_code = status_result.stdout.strip()
+            if not (http_code.isdigit() and 200 <= int(http_code) < 300):
+                return False, f"HTTP {http_code}"
+
+            # Content validation if expected text is provided
+            if expected_text:
+                response_content = result.stdout
+                if expected_text not in response_content:
+                    # Save screenshot of response content
+                    timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    screenshot_file = (
+                        screenshot_dir / f"{service}_{timestamp}_content_mismatch.txt"
+                    )
+                    with open(screenshot_file, "w") as f:
+                        f.write(f"URL: {url}\n")
+                        f.write(f"Expected text: {expected_text}\n")
+                        f.write(f"HTTP Status: {http_code}\n")
+                        f.write(f"Response content:\n{response_content}")
+
+                    return (
+                        False,
+                        f"Missing expected text, saved to {screenshot_file.name}",
+                    )
+
+            return True, "Healthy"
+
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+
+    def generate_table() -> Table:
+        table = Table(title="DynaDock Service Health Monitor")
+        table.add_column("Service", justify="left", style="cyan", no_wrap=True)
+        table.add_column("URL", style="magenta")
+        table.add_column("Status", justify="center")
+        table.add_column("Details", style="dim")
+        table.add_column("Timestamp", justify="right", style="green")
+
+        for service, url in service_urls.items():
+            is_healthy, details = test_url_with_content_check(url, service)
+            status_icon = (
+                "[green]✅ Healthy[/green]" if is_healthy else "[red]❌ Unhealthy[/red]"
+            )
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            table.add_row(service, url, status_icon, details, timestamp)
+
+        return table
+
+    try:
+        console.print(
+            f"[bold cyan]🔍 Starting health monitoring (interval: {interval}s)[/bold cyan]"
+        )
+        if expected_text:
+            console.print(
+                f"[dim]Validating response content for text: '{expected_text}'[/dim]"
+            )
+        console.print(f"[dim]Screenshots saved to: {screenshot_dir}[/dim]\n")
+
+        with Live(
+            generate_table(), console=console, screen=True, auto_refresh=False
+        ) as live:
+            while True:
+                time.sleep(interval)
+                live.update(generate_table(), refresh=True)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopping service monitor...[/dim]")
+
+        # Cleanup old screenshots (keep only last 10)
+        screenshot_files = sorted(
+            screenshot_dir.glob("*.txt"), key=lambda x: x.stat().st_mtime, reverse=True
+        )
+        for old_file in screenshot_files[10:]:
+            old_file.unlink()
+
+        if screenshot_files:
+            console.print(
+                f"[dim]Kept {min(len(screenshot_files), 10)} most recent screenshots in {screenshot_dir}[/dim]"
+            )

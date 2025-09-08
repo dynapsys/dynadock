@@ -1,4 +1,5 @@
 """Unit tests for PortAllocator."""
+
 from __future__ import annotations
 
 import socket
@@ -28,7 +29,7 @@ class TestPortAllocator:
         """Verify that used ports are picked up during initial scan."""
         # Fake two listening ports returned by psutil
         from psutil import CONN_LISTEN
-        
+
         mock_conn1 = Mock()
         mock_conn1.laddr = Mock(port=8080)
         mock_conn1.status = CONN_LISTEN
@@ -55,6 +56,7 @@ class TestPortAllocator:
     def test_is_port_free_socket_error(self, mock_socket_class):
         """Socket bind errors should mark port as unavailable."""
         from unittest.mock import MagicMock
+
         mock_socket = MagicMock()
         mock_socket.__enter__.return_value = mock_socket
         mock_socket.__exit__.return_value = None
@@ -69,6 +71,7 @@ class TestPortAllocator:
     def test_is_port_free_success(self, _mock_connections, mock_socket_class):
         """Successful OS bind indicates free port."""
         from unittest.mock import MagicMock
+
         mock_socket = MagicMock()
         mock_socket.__enter__.return_value = mock_socket
         mock_socket.__exit__.return_value = None

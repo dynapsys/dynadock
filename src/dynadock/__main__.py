@@ -3,6 +3,7 @@
 This module allows execution with `python -m dynadock` and simply
 forwards to the top-level `dynadock.cli` entry function.
 """
+
 from __future__ import annotations
 
 from .cli import cli

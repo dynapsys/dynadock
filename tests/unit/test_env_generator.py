@@ -1,11 +1,9 @@
 """Unit tests for EnvGenerator."""
+
 from __future__ import annotations
 
-import secrets
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from dynadock.env_generator import EnvGenerator
 

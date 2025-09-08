@@ -1,7 +1,7 @@
 """Pytest configuration and reusable fixtures for DynaDock tests."""
+
 from __future__ import annotations
 
-import os
 import sys
 import shutil
 import tempfile
@@ -28,6 +28,7 @@ if str(SRC_PATH) not in sys.path:
 # Generic fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def temp_dir() -> GeneratorType[Path, None, None]:
     """Return a temporary directory path that is cleaned up afterwards."""
@@ -50,6 +51,7 @@ def mock_docker_client() -> GeneratorType[Mock, None, None]:
 # ---------------------------------------------------------------------------
 # Network-heavy integration tests (optional, skipped if Docker not available)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def docker_client():
@@ -90,8 +92,9 @@ def cleanup_docker(docker_client):  # noqa: ANN001 – dynamic fixture
 # Additional fixtures for cross-class reuse
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def lan_manager(tmp_path):
     """Provide a default LANNetworkManager with interface detection patched."""
-    with patch.object(LANNetworkManager, '_auto_detect_interface', return_value='eth0'):
+    with patch.object(LANNetworkManager, "_auto_detect_interface", return_value="eth0"):
         return LANNetworkManager(tmp_path)

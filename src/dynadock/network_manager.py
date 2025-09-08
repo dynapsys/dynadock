@@ -7,9 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Any
 import logging
 
-from .log_config import setup_logging
 
-logger = logging.getLogger('dynadock.network_manager')
+logger = logging.getLogger("dynadock.network_manager")
 
 
 class NetworkManager:
@@ -55,7 +54,7 @@ class NetworkManager:
             # Execute the helper script as a module to ensure it uses the same environment
             cmd = [
                 "sudo",
-                "-n", # Non-interactive
+                "-n",  # Non-interactive
                 python_executable,
                 "-m",
                 "dynadock.network_helper",
@@ -63,7 +62,9 @@ class NetworkManager:
                 ip_map_json,
             ]
 
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                cmd, check=True, capture_output=True, text=True, timeout=10
+            )
             return True
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Network helper script failed for command '{command}':")
@@ -73,7 +74,9 @@ class NetworkManager:
             logger.error(f"❌ Network helper script timed out for command '{command}'.")
             return False
         except Exception as e:
-            logger.error(f"❌ An unexpected error occurred while running network helper: {e}")
+            logger.error(
+                f"❌ An unexpected error occurred while running network helper: {e}"
+            )
             return False
 
     def setup_interfaces(self, services: Dict[str, Any], domain: str) -> Dict[str, str]:
@@ -86,7 +89,9 @@ class NetworkManager:
             logger.info("✅ Network interfaces created successfully.")
             return ip_map
         else:
-            logger.error("Failed to set up network interfaces. Falling back may be necessary.")
+            logger.error(
+                "Failed to set up network interfaces. Falling back may be necessary."
+            )
             return {}
 
     def teardown_interfaces(self, domain: str) -> None:

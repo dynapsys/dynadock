@@ -1,5 +1,5 @@
 # DynaDock Makefile
-.PHONY: help install dev test test-unit test-integration test-examples test-watch lint format docs docs-serve clean docker-test security release pre-commit coverage-report benchmark check-deps update-deps free-port-80 example-simple example-api example-fullstack example-clean dynadock-up dynadock-down dynadock-logs dynadock-health build-dist check-dist publish publish-testpypi
+.PHONY: help install dev test test-all test-unit test-integration test-examples test-watch lint format docs docs-serve clean docker-test security release pre-commit coverage-report benchmark check-deps update-deps free-port-80 example-simple example-api example-fullstack example-clean dynadock-up dynadock-down dynadock-logs dynadock-health build-dist check-dist publish publish-testpypi
 
 PYTHON := python3
 UV := uv
@@ -37,11 +37,28 @@ test: ## Run all tests with coverage
 	@$(MAKE) test-examples
 	@echo "$(GREEN)✓ All tests complete$(NC)"
 
+test-all: ## Run comprehensive test suite (unit, integration, examples, lint, security)
+	@echo "$(YELLOW)🧪 DynaDock Comprehensive Test Suite$(NC)"
+	@echo "===================================="
+	@echo "$(BLUE)1/6 Unit Tests$(NC)"
+	@$(UV) run pytest tests/unit/ -v --tb=short || echo "$(YELLOW)⚠ Unit tests completed with issues$(NC)"
+	@echo "$(BLUE)2/6 Integration Tests$(NC)"
+	@$(UV) run pytest tests/integration/ -v --tb=short || echo "$(YELLOW)⚠ Integration tests completed with issues$(NC)"
+	@echo "$(BLUE)3/6 Example Tests$(NC)"
+	@./scripts/test_runner.sh all || echo "$(YELLOW)⚠ Example tests completed with issues$(NC)"
+	@echo "$(BLUE)4/6 Code Linting$(NC)"
+	@$(UV) run ruff check src/ tests/ || echo "$(YELLOW)⚠ Linting completed with issues$(NC)"
+	@echo "$(BLUE)5/6 Type Checking$(NC)"
+	@$(UV) run mypy src/dynadock --ignore-missing-imports || echo "$(YELLOW)⚠ Type checking completed with issues$(NC)"
+	@echo "$(BLUE)6/6 Security Scan$(NC)"
+	@$(UV) run bandit -r src/dynadock || echo "$(YELLOW)⚠ Security scan completed with warnings$(NC)"
+	@echo "$(GREEN)✅ Comprehensive test suite completed$(NC)"
+
 test-unit: ## Run unit tests only
-	$(UV) run pytest tests/unit/ -v -m unit
+	$(UV) run pytest tests/unit/ -v
 
 test-integration: ## Run integration tests only
-	$(UV) run pytest tests/integration/ -v -m integration
+	$(UV) run pytest tests/integration/ -v
 
 test-examples: ## Run tests for all example applications
 	@echo "$(YELLOW)Testing example applications...$(NC)"

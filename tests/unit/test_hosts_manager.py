@@ -17,7 +17,11 @@ class DummyProc:
 
 def test_build_block_formatting(tmp_path: Path):
     hm = HostsManager(tmp_path)
-    ip_map: Dict[str, str] = {"api": "172.20.0.10", "web": "172.20.0.11", "db": "172.20.0.12"}
+    ip_map: Dict[str, str] = {
+        "api": "172.20.0.10",
+        "web": "172.20.0.11",
+        "db": "172.20.0.12",
+    }
 
     # Intentionally unsorted keys to verify sorting by service name
     ip_map_unsorted = {"web": ip_map["web"], "db": ip_map["db"], "api": ip_map["api"]}
