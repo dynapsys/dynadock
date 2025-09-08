@@ -47,6 +47,7 @@ def teardown_interfaces(ip_map_json: str) -> None:
 
 
 if __name__ == "__main__":
+    # Note: This script is executed with sudo, so logging needs to be re-initialized.
     setup_logging()
     try:
         command = sys.argv[1]
@@ -61,4 +62,6 @@ if __name__ == "__main__":
             sys.exit(1)
     except Exception as e:
         logger.critical(f"An error occurred in network_helper: {e}", exc_info=True)
+        # Write error to stderr to be captured by the main process
+        print(f"Helper script failed: {e}", file=sys.stderr)
         sys.exit(1)
