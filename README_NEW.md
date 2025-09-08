@@ -2,12 +2,13 @@
 
 > Inteligentny orchestrator Docker Compose z automatyczną alokacją portów, TLS i lokalnymi subdomenami
 
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-green.svg)](.github/workflows/test.yml)
+[![PyPI version](https://img.shields.io/pypi/v/dynadock.svg)](https://pypi.org/project/dynadock/)
+[![Python Version](https://img.shields.io/pypi/pyversions/dynadock.svg)](https://pypi.org/project/dynadock/)
+[![Tests](https://github.com/dynapsys/dynadock/actions/workflows/test.yml/badge.svg)](https://github.com/dynapsys/dynadock/actions/workflows/test.yml)
+[![License](https://img.shields.io/pypi/l/dynadock.svg)](LICENSE)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/dynadock.svg)](https://pypi.org/project/dynadock/)
 
-## 🎯 Dlaczego DynaDock?
+## Dlaczego DynaDock?
 
 DynaDock rozwiązuje najczęstsze problemy przy pracy z Docker Compose:
 
@@ -17,20 +18,24 @@ DynaDock rozwiązuje najczęstsze problemy przy pracy z Docker Compose:
 - **Zero konfiguracji** - działa od razu po instalacji
 - **Health checks** - automatyczne monitorowanie serwisów
 
-## 📋 Spis treści
+## Spis treści
 
-- [Instalacja](#-instalacja)
-- [Szybki start](#-szybki-start)
-- [Przykłady użycia](#-przykłady-użycia)
-- [Funkcjonalności](#-funkcjonalności)
-- [Komendy CLI](#-komendy-cli)
-- [Konfiguracja](#-konfiguracja)
-- [Przykładowe projekty](#-przykładowe-projekty)
-- [Rozwiązywanie problemów](#-rozwiązywanie-problemów)
-- [Rozwój](#-rozwój)
-- [Wkład](#-wkład)
+- [Dlaczego DynaDock?](#dlaczego-dynadock)
+- [Instalacja](#instalacja)
+- [Szybki start](#szybki-start)
+- [Przykłady użycia](#przykłady-użycia)
+- [Funkcjonalności](#funkcjonalności)
+- [Komendy CLI](#komendy-cli)
+- [Konfiguracja](#konfiguracja)
+- [Przykładowe projekty](#przykładowe-projekty)
+- [Rozwiązywanie problemów](#rozwiazywanie-problemow)
+- [Rozwój](#rozwój)
+- [Wkład](#wkład)
+- [Autor](#autor)
+- [Licencja](#licencja)
+- [Podziękowania](#podziękowania)
 
-## 🚀 Instalacja
+## Instalacja
 
 ### Z PyPI (zalecane)
 
@@ -52,7 +57,7 @@ cd dynadock
 make install
 ```
 
-## 🎮 Szybki start
+## Szybki start
 
 ### 1. Podstawowe użycie
 
@@ -87,7 +92,7 @@ dynadock up --domain myapp.local --enable-tls
 # https://web.myapp.local
 ```
 
-## 📚 Przykłady użycia
+## Przykłady użycia
 
 ### Aplikacja Node.js z MongoDB
 
@@ -183,7 +188,7 @@ dynadock up --enable-tls --scale user-service=3
 # https://rabbitmq.dynadock.lan - RabbitMQ Management
 ```
 
-## ⚡ Funkcjonalności
+## Funkcjonalności
 
 ### 🔧 Automatyczna konfiguracja
 
@@ -208,7 +213,7 @@ dynadock up --enable-tls --scale user-service=3
 - **Logi**: Scentralizowane logowanie
 - **Alerts**: Powiadomienia o problemach
 
-## 📟 Komendy CLI
+## Komendy CLI
 
 ### Podstawowe komendy
 
@@ -260,7 +265,7 @@ dynadock up --scale api=5 --scale worker=3
 dynadock up --cors-origins https://app.com,https://admin.app.com
 ```
 
-## ⚙️ Konfiguracja
+## Konfiguracja
 
 ### Plik `.dynadock.yaml`
 
@@ -298,11 +303,12 @@ DYNADOCK_REDIS_PORT=8002
 DYNADOCK_REDIS_URL=redis://redis.myapp.local:8002
 ```
 
-## 🧪 Przykładowe projekty
+## Przykładowe projekty
 
 Repozytorium zawiera kompletne przykłady w katalogu `examples/`:
 
 ### 1. Simple Web App
+
 ```bash
 cd examples/simple-web
 dynadock up --enable-tls
@@ -310,6 +316,7 @@ dynadock up --enable-tls
 ```
 
 ### 2. REST API z bazą danych
+
 ```bash
 cd examples/rest-api
 dynadock up --enable-tls
@@ -318,6 +325,7 @@ dynadock up --enable-tls
 ```
 
 ### 3. Mikroserwisy
+
 ```bash
 cd examples/microservices
 dynadock up --enable-tls --scale worker=3
@@ -326,6 +334,7 @@ dynadock up --enable-tls --scale worker=3
 ```
 
 ### 4. Full-stack aplikacja
+
 ```bash
 cd examples/fullstack
 dynadock up --enable-tls
@@ -334,7 +343,7 @@ dynadock up --enable-tls
 # Admin: https://admin.dynadock.lan
 ```
 
-## 🐛 Rozwiązywanie problemów
+## Rozwiązywanie problemów
 
 ### Port już zajęty
 
@@ -376,7 +385,7 @@ dynadock network reset
 dynadock up --network host
 ```
 
-## 🛠️ Rozwój
+## Rozwój
 
 ### Wymagania
 
@@ -442,9 +451,9 @@ make format
 make pre-commit
 ```
 
-## 🤝 Wkład
+## Wkład
 
-Zapraszamy do współtworzenia DynaDock! Zobacz [CONTRIBUTING.md](CONTRIBUTING.md).
+Zapraszamy do współtworzenia DynaDock! Zobacz nasz [przewodnik dla kontrybutorów](CONTRIBUTING.md), aby dowiedzieć się więcej.
 
 ### Jak pomóc?
 
@@ -458,11 +467,15 @@ Zapraszamy do współtworzenia DynaDock! Zobacz [CONTRIBUTING.md](CONTRIBUTING.m
 
 Użyj [GitHub Issues](https://github.com/dynapsys/dynadock/issues) do zgłaszania błędów.
 
-## 📄 Licencja
+## Autor
+
+**DynaDock** jest rozwijany i utrzymywany przez zespół [Dynapsys](https://github.com/dynapsys).
+
+## Licencja
 
 MIT - zobacz [LICENSE](LICENSE)
 
-## 🙏 Podziękowania
+## Podziękowania
 
 - [Caddy](https://caddyserver.com/) - za świetny reverse proxy
 - [Docker](https://docker.com/) - za konteneryzację
@@ -471,6 +484,7 @@ MIT - zobacz [LICENSE](LICENSE)
 
 ---
 
-<p align="center">
-  Stworzone z ❤️ przez <a href="https://github.com/dynapsys">Dynapsys</a>
-</p>
+---
+
+
+<p align="center">Stworzone z ❤️ przez <a href="https://github.com/dynapsys">Dynapsys</a></p>
