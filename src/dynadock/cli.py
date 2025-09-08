@@ -296,6 +296,13 @@ def up(  # noqa: D401
             raise click.Abort()
         
         log_step_duration("Starting application containers")
+
+        # Wait for services with health checks to be healthy
+        services_with_health_checks = [
+            svc for svc, cfg in services.items() if 'healthcheck' in cfg
+        ]
+        if services_with_health_checks:
+            docker_manager.wait_for_healthy_services(services_with_health_checks)
         progress.update(task, advance=1, description="Configuring reverse-proxy…")
         caddy_config.generate(
             services=services,

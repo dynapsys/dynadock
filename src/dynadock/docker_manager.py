@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
@@ -239,3 +240,55 @@ class DockerManager:  # pylint: disable=too-many-public-methods
     def exec(self, service: str, command: str) -> None:  # noqa: D401
         cmd = self._compose_cmd("exec", service, command)
         subprocess.run(cmd, cwd=self.project_dir)  # noqa: S603 – CLI pass-through
+
+    def wait_for_healthy_services(self, services: List[str], timeout: int = 120) -> None:
+        """Wait for specified services to become healthy based on Docker health checks."""
+        logger.info(f"⏳ Waiting for services to become healthy: {', '.join(services)} (timeout: {timeout}s)")
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            unhealthy_services = []
+            all_healthy = True
+
+            # Get current container states
+            containers = self.ps()
+            container_map = {c.labels.get('com.docker.compose.service'): c for c in containers}
+
+            for service_name in services:
+                container = container_map.get(service_name)
+                if not container:
+                    logger.warning(f"Container for service '{service_name}' not found yet.")
+                    all_healthy = False
+                    unhealthy_services.append(service_name)
+                    continue
+
+                # Check health status
+                health = container.attrs.get('State', {}).get('Health', {})
+                status = health.get('Status')
+
+                if status:
+                    if status == 'healthy':
+                        logger.debug(f"✅ Service '{service_name}' is healthy.")
+                    elif status == 'unhealthy':
+                        self.error_handler.log_and_raise(
+                            DynaDockDockerError,
+                            f"Service '{service_name}' reported as unhealthy. Check logs for details."
+                        )
+                    else: # 'starting'
+                        all_healthy = False
+                        unhealthy_services.append(service_name)
+                else:
+                    # No health check defined, assume healthy
+                    logger.debug(f"Service '{service_name}' has no health check, assuming it's up.")
+
+            if all_healthy:
+                logger.info("✅ All services are healthy!")
+                return
+
+            logger.info(f"Waiting for: {', '.join(unhealthy_services)}...")
+            time.sleep(5)
+
+        self.error_handler.log_and_raise(
+            DynaDockTimeoutError,
+            f"Timed out waiting for services to become healthy: {', '.join(unhealthy_services)}"
+        )

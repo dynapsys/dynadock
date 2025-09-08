@@ -45,6 +45,7 @@ services:
 
   postgres:
     image: postgres:14-alpine
+    restart: unless-stopped
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     environment:
@@ -54,13 +55,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d appdb"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
     command: redis-server --appendonly yes
