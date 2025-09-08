@@ -27,20 +27,12 @@ from .hosts_manager import HostsManager
 from .cli_helpers.verification import verify_domain_access, test_url_with_curl
 from .cli_helpers.display import display_running_services, display_success, display_warning, display_error
 from .performance_analyzer import PerformanceAnalyzer
+from .log_config import setup_logging
 
 __all__ = ["cli"]
 
 console = Console()
 
-# Configure enhanced logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('.dynadock/dynadock.log')
-    ]
-)
 logger = logging.getLogger('dynadock')
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -68,15 +60,9 @@ logger = logging.getLogger('dynadock')
 @click.pass_context
 def cli(ctx: click.Context, compose_file: str | None, env_file: str, verbose: bool) -> None:
     """DynaDock – Dynamic docker-compose orchestrator with TLS & Caddy love."""
-    
-    if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logger.debug("🔍 Verbose logging enabled")
+    setup_logging(verbose)
     
     logger.info(f"🚀 DynaDock CLI started - compose_file: {compose_file}, env_file: {env_file}")
-    
-    # Ensure .dynadock directory exists for logs
-    Path('.dynadock').mkdir(exist_ok=True)
     ctx.ensure_object(dict)
     if compose_file is None:
         compose_file = find_compose_file()

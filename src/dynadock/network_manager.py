@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Any
 from importlib.resources import files, as_file
 import logging
+from .log_config import setup_logging
 
 logger = logging.getLogger('dynadock.network_manager')
 
@@ -64,6 +65,7 @@ class NetworkManager:
 
         # Access resource as a real file path and execute via bash
         try:
+            setup_logging() # Re-initialize logging for sudo context
             with as_file(self._manage_veth_resource) as script_path:
                 subprocess.run(["sudo", "bash", str(script_path), "up", str(self.ip_map_env_path)], check=True)
         except subprocess.CalledProcessError as e:
@@ -77,6 +79,7 @@ class NetworkManager:
         if not self.ip_map_env_path.exists() and not ip_map:
             return
 
+        setup_logging() # Re-initialize logging for sudo context
         with as_file(self._manage_veth_resource) as script_path:
             subprocess.run(["sudo", "bash", str(script_path), "down", str(self.ip_map_env_path)], check=True)
         

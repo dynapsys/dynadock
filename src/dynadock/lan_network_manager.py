@@ -16,6 +16,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from .exceptions import DynaDockNetworkError, ErrorHandler
+from .log_config import setup_logging
 
 logger = logging.getLogger('dynadock.lan_network')
 
@@ -50,8 +51,6 @@ class LANNetworkManager:
                     self._path.unlink()
 
     def __init__(self, project_dir: Path, interface: Optional[str] = None):
-        self.project_dir = project_dir
-        # Initialize error handler BEFORE any method that might log errors
         self.error_handler = ErrorHandler()
         self.interface = interface or self._auto_detect_interface()
         self.virtual_ips = []
@@ -193,6 +192,7 @@ class LANNetworkManager:
     def add_virtual_ip(self, ip_address: str, service_name: str, cidr: str = "24") -> bool:
         """Add a virtual IP address with full LAN visibility"""
         try:
+            setup_logging() # Re-initialize logging for sudo context
             label = f"{self.interface}:{service_name}"
             
             # Add IP alias to interface
@@ -312,6 +312,7 @@ class LANNetworkManager:
     def remove_virtual_ip(self, ip_address: str, cidr: str = "24") -> bool:
         """Remove a virtual IP address"""
         try:
+            setup_logging() # Re-initialize logging for sudo context
             # Remove IP from interface
             cmd = f"ip addr del {ip_address}/{cidr} dev {self.interface}"
             subprocess.run(cmd, shell=True, capture_output=True)
