@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, Any
 import logging
-
-from pyroute2 import IPDB, NetNS
 
 from .log_config import setup_logging
 
@@ -14,7 +13,7 @@ logger = logging.getLogger('dynadock.network_manager')
 
 
 class NetworkManager:
-    """Manage virtual network interfaces and IP allocation for services using pyroute2."""
+    """Manage virtual network interfaces by invoking a helper script with sudo."""
 
     _SUBNET_BASE = "172.20.0."
     _IP_MAP_JSON = ".dynadock_ip_map.json"
@@ -47,61 +46,48 @@ class NetworkManager:
         self._save_ip_map(ip_map)
         return ip_map
 
+    def _run_helper(self, command: str, ip_map: Dict[str, str]) -> bool:
+        """Run the network_helper.py script with sudo."""
+        setup_logging()
+        try:
+            ip_map_json = json.dumps(ip_map)
+            # Use sys.executable to ensure we use the same python interpreter
+            cmd = ["sudo", sys.executable, "-m", "dynadock.network_helper", command, ip_map_json]
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.error(f"❌ Network helper script failed for command '{command}':")
+            logger.error(f"   STDOUT: {e.stdout.strip()}")
+            logger.error(f"   STDERR: {e.stderr.strip()}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ An unexpected error occurred while running network helper: {e}")
+            return False
+
     def setup_interfaces(self, services: Dict[str, Any], domain: str) -> Dict[str, str]:
         """Create virtual network interfaces for all services."""
-        setup_logging()  # Ensure logging is configured in sudo context
         service_names = list(services.keys())
         ip_map = self.allocate_ips(service_names)
 
-        try:
-            with IPDB() as ipdb:
-                for service, ip in ip_map.items():
-                    veth_name = f"veth_{service}"
-                    peer_name = f"peer_{service}"
-
-                    # Clean up old interfaces first
-                    for iface in [veth_name, peer_name]:
-                        if iface in ipdb.interfaces:
-                            ipdb.interfaces[iface].remove().commit()
-                            logger.debug(f"Removed existing interface: {iface}")
-
-                    # Create veth pair
-                    ipdb.create(ifname=veth_name, kind='veth', peer=peer_name).commit()
-                    logger.info(f"Created veth pair: {veth_name} <-> {peer_name}")
-
-                    # Configure the host-side interface
-                    with ipdb.interfaces[veth_name] as veth:
-                        veth.add_ip(f"{ip}/24")
-                        veth.up()
-                    
-                    # Configure the peer interface (can be moved to a netns later)
-                    with ipdb.interfaces[peer_name] as peer:
-                        peer.up()
-
+        logger.info("🚀 Setting up network interfaces via helper...")
+        if self._run_helper("up", ip_map):
+            logger.info("✅ Network interfaces created successfully.")
             return ip_map
-        except Exception as e:
-            logger.error(f"❌ Failed to set up network interfaces using pyroute2: {e}")
-            # Attempt to clean up on failure
-            self.teardown_interfaces(domain)
+        else:
+            logger.error("Failed to set up network interfaces. Falling back may be necessary.")
             return {}
 
     def teardown_interfaces(self, domain: str) -> None:
         """Remove all managed virtual network interfaces."""
-        setup_logging()  # Ensure logging is configured in sudo context
         ip_map = self._load_ip_map()
         if not ip_map:
             return
 
-        logger.info("🧹 Tearing down virtual network interfaces...")
-        try:
-            with IPDB() as ipdb:
-                for service in ip_map.keys():
-                    veth_name = f"veth_{service}"
-                    if veth_name in ipdb.interfaces:
-                        ipdb.interfaces[veth_name].remove().commit()
-                        logger.info(f"Removed interface: {veth_name}")
-        except Exception as e:
-            logger.error(f"❌ Failed to tear down network interfaces: {e}")
+        logger.info("🧹 Tearing down virtual network interfaces via helper...")
+        if self._run_helper("down", ip_map):
+            logger.info("✅ Network interfaces torn down successfully.")
+        else:
+            logger.error("Failed to tear down network interfaces.")
 
         # Clean up tracking file
         self.ip_map_json_path.unlink(missing_ok=True)
