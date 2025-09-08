@@ -592,6 +592,8 @@ def net_diagnose(ctx: click.Context, domain: str) -> None:
     console.print(report)
 
 
+
+
 @cli.command()
 @click.option("--interval", "-i", default=5, help="Interval in seconds to check services.", type=int)
 @click.pass_context
@@ -808,10 +810,8 @@ def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, netw
             try:
                 import subprocess as _sub
                 _sub.run(f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2)
-                _sub.run(f"arping -c 1 -w 1 {ip}", shell=True, capture_output=True, timeout=2)
             except Exception:
-                pass
-
+                pass # Ignore ping failures, this is just a best-effort ARP stimulation
         conflicts = lan_network_manager.detect_conflicts(service_ip_map, allocated_ports)
         if conflicts:
             console.print("\n[bold red]❌ Potential conflicts detected[/bold red]")
@@ -838,12 +838,14 @@ def check_conflicts(ctx: click.Context, lan_visible: bool, start_port: int, netw
     # Non-LAN: check local port availability only (cross-host conflicts not applicable)
     console.print("[dim]LAN-visible flag not provided; checking only local port availability...[/dim]")
     import socket as _socket
-    busy = []
-    for svc, port in allocated_ports.items():
-        s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-        s.settimeout(0.1)
-        try:
-            if s.connect_ex(("127.0.0.1", port)) == 0:
+    has_conflict = False
+    for service, port in allocated_ports.items():
+        with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as s:
+            if s.connect_ex(('127.0.0.1', port)) == 0:
+                console.print(f"[red]❌ Port {port} for service '{service}' is already in use.[/red]")
+                has_conflict = True
+    if has_conflict:
+        console.print("[yellow]Tip: Stop the process using the conflicting port(s) or change start port with -p.[/yellow]")
                 busy.append((svc, port))
         finally:
             s.close()
