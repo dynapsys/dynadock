@@ -63,7 +63,7 @@ class NetworkManager:
             ]
 
             result = subprocess.run(
-                cmd, check=True, capture_output=True, text=True, timeout=10
+                cmd, check=True, capture_output=True, text=True, timeout=10  # nosec B603 - Controlled command for network setup
             )
             return True
         except subprocess.CalledProcessError as e:

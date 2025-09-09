@@ -64,7 +64,7 @@ class EnvGenerator:
             logger.debug(f"🔌 Configuring service: {service_name} on port {port}")
             upper_name = service_name.upper().replace("-", "_")
             env_vars[f"{upper_name}_PORT"] = str(port)
-            env_vars[f"{upper_name}_HOST"] = "0.0.0.0"
+            env_vars[f"{upper_name}_HOST"] = "localhost"
             env_vars[f"{upper_name}_URL"] = (
                 f"{env_vars['DYNADOCK_PROTOCOL']}://{service_name}.{domain}"
             )

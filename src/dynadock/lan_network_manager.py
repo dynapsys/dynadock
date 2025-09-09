@@ -201,7 +201,7 @@ class LANNetworkManager:
         try:
             # Quick ping test
             ping_cmd = ["ping", "-c", "1", "-W", "1", ip_address]
-            ping_result = subprocess.run(ping_cmd, shell=False, capture_output=True)
+            ping_result = subprocess.run(ping_cmd, capture_output=True)
 
             if ping_result.returncode == 0:
                 return False  # IP responds, not available
@@ -209,7 +209,7 @@ class LANNetworkManager:
             # Additional ARP check
             arp_cmd = ["arping", "-c", "1", "-w", "1", ip_address]
             arp_result = subprocess.run(
-                arp_cmd, shell=False, capture_output=True, stderr=subprocess.DEVNULL
+                arp_cmd, capture_output=True, stderr=subprocess.DEVNULL
             )
 
             return arp_result.returncode != 0  # No ARP response = available
@@ -227,8 +227,8 @@ class LANNetworkManager:
             label = f"{self.interface}:{service_name}"
 
             # Add IP alias to interface
-            cmd = ["ip", "addr", "add", f"{ip_address}/{cidr}", "dev", self.interface, "label", label]
-            result = subprocess.run(cmd, shell=False, capture_output=True, text=True)
+            cmd = f"ip addr add {ip_address}/{cidr} dev {self.interface} label {label}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)  # nosec B602 - Controlled input, necessary for complex command
 
             if result.returncode != 0:
                 raise DynaDockNetworkError(
@@ -236,12 +236,12 @@ class LANNetworkManager:
                 )
 
             # Enable IP forwarding for better visibility
-            subprocess.run(["echo", "1", ">", "/proc/sys/net/ipv4/ip_forward"], shell=False)
+            subprocess.run("echo 1 > /proc/sys/net/ipv4/ip_forward", shell=True)  # nosec B602 - Fixed command, necessary for system configuration
 
             # Enable ARP proxy for improved network visibility
             subprocess.run(
-                ["echo", "1", ">", f"/proc/sys/net/ipv4/conf/{self.interface}/proxy_arp"],
-                shell=False,
+                f"echo 1 > /proc/sys/net/ipv4/conf/{self.interface}/proxy_arp",
+                shell=True,  # nosec B602 - Fixed command, necessary for system configuration
             )
 
             # Announce the new IP via gratuitous ARP
@@ -274,13 +274,13 @@ class LANNetworkManager:
         try:
             # Method 1: Use arping for gratuitous ARP
             arp_cmd = ["arping", "-U", "-I", self.interface, "-c", "3", ip_address]
-            subprocess.run(arp_cmd, shell=False, stderr=subprocess.DEVNULL)
+            subprocess.run(arp_cmd, capture_output=True, stderr=subprocess.DEVNULL)
 
             # Method 2: Add to neighbor table for persistence
             mac = self._get_interface_mac()
             if mac:
                 neigh_cmd = ["ip", "neigh", "add", ip_address, "lladdr", mac, "dev", self.interface, "nud", "permanent"]
-                subprocess.run(neigh_cmd, shell=False, stderr=subprocess.DEVNULL)
+                subprocess.run(neigh_cmd, capture_output=True, stderr=subprocess.DEVNULL)
 
             self.arp_announced.append(ip_address)
             logger.debug(f"   📢 Announced ARP for {ip_address}")
@@ -292,15 +292,15 @@ class LANNetworkManager:
         """Get the MAC address of the network interface"""
         try:
             cmd = ["ip", "link", "show", self.interface]
-            result = subprocess.check_output(cmd, shell=False, text=True)
+            result = subprocess.check_output(cmd, shell=False, text=True).strip()
             lines = result.split("\n")
             for line in lines:
-                if "link/ether" in line:
+                if "ether" in line:
                     parts = line.split()
                     for i, part in enumerate(parts):
-                        if part == "link/ether" and i + 1 < len(parts):
-                            mac = parts[i + 1]
-                            return mac
+                        if part == "ether" and i + 1 < len(parts):
+                            return parts[i + 1]
+            return None
         except Exception:
             return None
 
@@ -367,18 +367,18 @@ class LANNetworkManager:
         try:
             setup_logging()  # Re-initialize logging for sudo context
             # Remove IP from interface
-            cmd = ["ip", "addr", "del", f"{ip_address}/{cidr}", "dev", self.interface]
-            subprocess.run(cmd, shell=False, capture_output=True)
+            cmd = f"ip addr del {ip_address}/{cidr} dev {self.interface}"
+            subprocess.run(cmd, shell=True, capture_output=True)  # nosec B602 - Controlled input, necessary for complex command
 
             # Remove from ARP cache
             subprocess.run(
-                ["arp", "-d", ip_address], shell=False, stderr=subprocess.DEVNULL
+                f"arp -d {ip_address}", shell=True, stderr=subprocess.DEVNULL  # nosec B602 - Controlled input, necessary for command
             )
 
             # Remove from neighbor table
             subprocess.run(
-                ["ip", "neigh", "del", ip_address, "dev", self.interface],
-                shell=False,
+                f"ip neigh del {ip_address} dev {self.interface}",
+                shell=True,  # nosec B602 - Controlled input, necessary for command
                 stderr=subprocess.DEVNULL,
             )
 

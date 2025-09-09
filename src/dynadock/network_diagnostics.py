@@ -14,7 +14,7 @@ __all__ = ["NetworkDiagnostics"]
 
 def _run(cmd: List[str]) -> Tuple[int, str, str]:
     try:
-        p = subprocess.run(cmd, text=True, capture_output=True, check=False)
+        p = subprocess.run(cmd, text=True, capture_output=True, check=False)  # nosec B603 - Controlled command for system diagnostics
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except FileNotFoundError:
         return 127, "", f"command not found: {' '.join(cmd)}"
@@ -162,9 +162,9 @@ class NetworkDiagnostics:
         ip_map = self._load_ip_map()
 
         # Re-apply systemd-resolved stub domain
-        rc1, out1, err1 = _run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"])
+        rc1, out1, err1 = _run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"])  # nosec B603 - Controlled command for system configuration
         rc2, out2, err2 = _run(
-            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"]
+            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"]  # nosec B603 - Controlled command for system configuration
         )
         if rc1 == 0 and rc2 == 0:
             lines.append("- systemd-resolved: stub domain configured for loopback")

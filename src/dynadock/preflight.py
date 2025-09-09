@@ -40,7 +40,7 @@ def _port_in_use(port: int, proto: str = "tcp") -> Tuple[bool, str]:
     # Try ss first
     try:
         flags = "-ltnp" if proto == "tcp" else "-lunp"
-        p = subprocess.run(["ss", flags], capture_output=True, text=True, check=False)
+        p = subprocess.run(["ss", flags], capture_output=True, text=True, check=False)  # nosec B603 - Controlled command for port checking
         if p.returncode == 0 and str(port) in p.stdout:
             return True, p.stdout
     except FileNotFoundError:
@@ -48,7 +48,7 @@ def _port_in_use(port: int, proto: str = "tcp") -> Tuple[bool, str]:
     # Fallback to lsof
     try:
         p2 = subprocess.run(
-            ["lsof", f"-i:{port}"], capture_output=True, text=True, check=False
+            ["lsof", f"-i:{port}"], capture_output=True, text=True, check=False  # nosec B603 - Controlled command for port checking
         )
         if p2.returncode == 0 and p2.stdout.strip():
             return True, p2.stdout
@@ -84,7 +84,7 @@ class PreflightChecker:
         elif shutil.which("docker") is not None:
             try:
                 subprocess.run(
-                    ["docker", "compose", "version"], check=True, capture_output=True
+                    ["docker", "compose", "version"], check=True, capture_output=True  # nosec B603 - Controlled command for Docker interaction
                 )
                 compose_ok = True
             except Exception:
@@ -109,7 +109,7 @@ class PreflightChecker:
         # Docker accessibility
         if shutil.which("docker") is not None:
             p = subprocess.run(
-                ["docker", "ps"], capture_output=True, text=True, check=False
+                ["docker", "ps"], capture_output=True, text=True, check=False  # nosec B603 - Controlled command for Docker interaction
             )
             if p.returncode != 0:
                 errors.append(
@@ -122,7 +122,7 @@ class PreflightChecker:
         # Passwordless sudo (for veth and DNS setup)
         logger.info("Checking for passwordless sudo...")
         try:
-            sp = subprocess.run(["sudo", "-n", "true"], check=False)
+            sp = subprocess.run(["sudo", "-n", "true"], check=False)  # nosec B603 - Controlled command for sudo check
             if sp.returncode != 0:
                 errors.append(
                     "Passwordless sudo is required for network setup. It is not available."
@@ -184,13 +184,13 @@ class PreflightChecker:
         for name in ("dynadock-caddy", "dynadock-dns"):
             try:
                 subprocess.run(
-                    ["docker", "rm", "-f", name], check=False, capture_output=True
+                    ["docker", "rm", "-f", name], check=False, capture_output=True  # nosec B603 - Controlled command for Docker interaction
                 )
                 actions.append(f"Ensured container '{name}' is not running")
             except Exception:
                 pass
         # Flush resolved cache
         if shutil.which("resolvectl") is not None:
-            subprocess.run(["sudo", "resolvectl", "flush-caches"], check=False)
+            subprocess.run(["sudo", "resolvectl", "flush-caches"], check=False)  # nosec B603 - Controlled command for system configuration
             actions.append("Flushed systemd-resolved DNS cache")
         return actions

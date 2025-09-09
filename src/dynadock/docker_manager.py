@@ -51,7 +51,7 @@ def _run(
             check=True,
             capture_output=True,
             text=True,
-        )
+        )  # nosec B607 - Controlled command, necessary for Docker interaction
         logger.debug(f"✅ Command completed successfully: {cmd[0]}")
         return result
     except Exception as e:
@@ -112,7 +112,7 @@ class DockerManager:  # pylint: disable=too-many-public-methods
             # Verify that docker compose exists (plugin)
             try:
                 subprocess.run(
-                    ["docker", "compose", "version"], check=True, capture_output=True
+                    ["docker", "compose", "version"], check=True, capture_output=True  # nosec B607 - Controlled command, necessary for Docker interaction
                 )
                 return ["docker", "compose"]
             except Exception:
@@ -239,11 +239,11 @@ class DockerManager:  # pylint: disable=too-many-public-methods
             cmd.append("-f")
         if service:
             cmd.append(service)
-        subprocess.run(cmd, cwd=self.project_dir)  # noqa: S603 – CLI pass-through
+        subprocess.run(cmd, cwd=self.project_dir)  # nosec B603 - CLI pass-through, necessary for user interaction
 
     def exec(self, service: str, command: str) -> None:  # noqa: D401
         cmd = self._compose_cmd("exec", service, command)
-        subprocess.run(cmd, cwd=self.project_dir)  # noqa: S603 – CLI pass-through
+        subprocess.run(cmd, cwd=self.project_dir)  # nosec B603 - CLI pass-through, necessary for user interaction
 
     def wait_for_healthy_services(
         self, services: List[str], timeout: int = 120

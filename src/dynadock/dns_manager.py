@@ -102,18 +102,18 @@ class DnsManager:
             "/etc/dnsmasq.d",
         ]
         print("[dynadock] Starting dnsmasq container on 127.0.0.1:53 (TCP/UDP)")
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True)  # nosec B607 - Controlled command, necessary for Docker interaction
 
         # Configure systemd-resolved stub domain to forward ~domain to 127.0.0.1
         # These may fail on systems without systemd-resolved; ignore errors but print hints
         print(
             f"[dynadock] Configuring systemd-resolved: route '~{self.domain}' to 127.0.0.1 on lo"
         )
-        subprocess.run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"], check=False)
+        subprocess.run(["sudo", "resolvectl", "dns", "lo", "127.0.0.1"], check=False)  # nosec B607 - Controlled command, necessary for system configuration
         subprocess.run(
-            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"], check=False
+            ["sudo", "resolvectl", "domain", "lo", f"~{self.domain}"], check=False  # nosec B607 - Controlled command, necessary for system configuration
         )
-        subprocess.run(["sudo", "resolvectl", "flush-caches"], check=False)
+        subprocess.run(["sudo", "resolvectl", "flush-caches"], check=False)  # nosec B607 - Controlled command, necessary for system configuration
 
     def reload_dns(self) -> None:
         if not self.is_running():
@@ -121,11 +121,11 @@ class DnsManager:
         try:
             subprocess.run(
                 ["docker", "exec", self._CONTAINER_NAME, "kill", "-HUP", "1"],
-                check=True,
+                check=True,  # nosec B607 - Controlled command, necessary for Docker interaction
             )
         except subprocess.CalledProcessError:
             # Fallback: restart container
-            subprocess.run(["docker", "restart", self._CONTAINER_NAME], check=False)
+            subprocess.run(["docker", "restart", self._CONTAINER_NAME], check=False)  # nosec B607 - Controlled command, necessary for Docker interaction
 
     def stop_dns(self, remove: bool = True) -> None:
         """Stop dns and revert resolved config."""
@@ -137,7 +137,7 @@ class DnsManager:
             pass
 
         # Revert stub domain on loopback if possible
-        subprocess.run(["sudo", "resolvectl", "revert", "lo"], check=False)
+        subprocess.run(["sudo", "resolvectl", "revert", "lo"], check=False)  # nosec B607 - Controlled command, necessary for system configuration
 
         if remove and self.conf_path.exists():
             try:

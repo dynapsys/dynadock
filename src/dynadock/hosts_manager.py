@@ -32,7 +32,7 @@ class HostsManager:
         sed_script_remove = r"/^# BEGIN DYNADOCK HOSTS$/,/^# END DYNADOCK HOSTS$/d"
         script = f"set -e; sed -i.bak '{sed_script_remove}' /etc/hosts; cat '{block_file}' >> /etc/hosts"
         try:
-            subprocess.run(["sudo", "bash", "-c", script], check=True)
+            subprocess.run(["sudo", "bash", "-c", script], check=True)  # nosec B603 B607 - Necessary for complex shell command to edit /etc/hosts
         finally:
             try:
                 block_file.unlink()
@@ -42,4 +42,4 @@ class HostsManager:
     def remove(self) -> None:
         sed_script_remove = r"/^# BEGIN DYNADOCK HOSTS$/,/^# END DYNADOCK HOSTS$/d"
         script = f"set -e; sed -i.bak '{sed_script_remove}' /etc/hosts"
-        subprocess.run(["sudo", "bash", "-c", script], check=False)
+        subprocess.run(["sudo", "bash", "-c", script], check=False)  # nosec B603 B607 - Necessary for complex shell command to edit /etc/hosts
