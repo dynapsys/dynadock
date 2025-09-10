@@ -72,7 +72,7 @@ class LANNetworkManager:
         try:
             # Find the default route interface
             cmd = ["ip", "route"]
-            result = subprocess.check_output(cmd, shell=False, text=True).strip()
+            result = subprocess.check_output(cmd, shell=False, text=True).strip()  # nosec B603 - Controlled command, necessary for system interaction
             lines = result.split("\n")
             for line in lines:
                 if "default" in line:
@@ -101,7 +101,7 @@ class LANNetworkManager:
         """Check if network interface exists"""
         try:
             cmd = ["ip", "link", "show", interface]
-            subprocess.check_output(cmd, shell=False, stderr=subprocess.DEVNULL)
+            subprocess.check_output(cmd, shell=False, stderr=subprocess.DEVNULL)  # nosec B603 - Controlled command, necessary for system interaction
             return True
         except subprocess.CalledProcessError:
             return False
@@ -119,7 +119,7 @@ class LANNetworkManager:
         """Get detailed network information for the interface"""
         try:
             cmd = ["ip", "addr", "show", self.interface]
-            result = subprocess.check_output(cmd, shell=False, text=True)
+            result = subprocess.check_output(cmd, shell=False, text=True)  # nosec B603 - Controlled command, necessary for system interaction
 
             # Extract IP and subnet mask
             ip_pattern = r"inet (\d+\.\d+\.\d+\.\d+)/(\d+)"
@@ -201,7 +201,7 @@ class LANNetworkManager:
         try:
             # Quick ping test
             ping_cmd = ["ping", "-c", "1", "-W", "1", ip_address]
-            ping_result = subprocess.run(ping_cmd, capture_output=True)
+            ping_result = subprocess.run(ping_cmd, capture_output=True)  # nosec B603 - Controlled IP input, necessary for network testing
 
             if ping_result.returncode == 0:
                 return False  # IP responds, not available
@@ -209,7 +209,7 @@ class LANNetworkManager:
             # Additional ARP check
             arp_cmd = ["arping", "-c", "1", "-w", "1", ip_address]
             arp_result = subprocess.run(
-                arp_cmd, capture_output=True, stderr=subprocess.DEVNULL
+                arp_cmd, capture_output=True, stderr=subprocess.DEVNULL  # nosec B603 - Controlled IP input, necessary for network testing
             )
 
             return arp_result.returncode != 0  # No ARP response = available
@@ -227,8 +227,8 @@ class LANNetworkManager:
             label = f"{self.interface}:{service_name}"
 
             # Add IP alias to interface
-            cmd = f"ip addr add {ip_address}/{cidr} dev {self.interface} label {label}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)  # nosec B602 - Controlled input, necessary for complex command
+            cmd = ["ip", "addr", "add", f"{ip_address}/{cidr}", "dev", self.interface, "label", label]
+            result = subprocess.run(cmd, capture_output=True, text=True)  # nosec B603 - Controlled input, necessary for network configuration
 
             if result.returncode != 0:
                 raise DynaDockNetworkError(
@@ -236,13 +236,12 @@ class LANNetworkManager:
                 )
 
             # Enable IP forwarding for better visibility
-            subprocess.run("echo 1 > /proc/sys/net/ipv4/ip_forward", shell=True)  # nosec B602 - Fixed command, necessary for system configuration
+            with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
+                f.write("1")  # nosec B607 - Fixed value, necessary for system configuration
 
             # Enable ARP proxy for improved network visibility
-            subprocess.run(
-                f"echo 1 > /proc/sys/net/ipv4/conf/{self.interface}/proxy_arp",
-                shell=True,  # nosec B602 - Fixed command, necessary for system configuration
-            )
+            with open(f"/proc/sys/net/ipv4/conf/{self.interface}/proxy_arp", "w") as f:
+                f.write("1")  # nosec B607 - Fixed value, necessary for system configuration
 
             # Announce the new IP via gratuitous ARP
             self._announce_arp(ip_address)
@@ -259,7 +258,6 @@ class LANNetworkManager:
             self._save_ip_tracking()
 
             return True
-
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Failed to add virtual IP {ip_address}: {e}")
             return False
@@ -274,13 +272,13 @@ class LANNetworkManager:
         try:
             # Method 1: Use arping for gratuitous ARP
             arp_cmd = ["arping", "-U", "-I", self.interface, "-c", "3", ip_address]
-            subprocess.run(arp_cmd, capture_output=True, stderr=subprocess.DEVNULL)
+            subprocess.run(arp_cmd, capture_output=True, stderr=subprocess.DEVNULL)  # nosec B603 - Controlled IP input, necessary for network announcement
 
             # Method 2: Add to neighbor table for persistence
             mac = self._get_interface_mac()
             if mac:
                 neigh_cmd = ["ip", "neigh", "add", ip_address, "lladdr", mac, "dev", self.interface, "nud", "permanent"]
-                subprocess.run(neigh_cmd, capture_output=True, stderr=subprocess.DEVNULL)
+                subprocess.run(neigh_cmd, capture_output=True, stderr=subprocess.DEVNULL)  # nosec B603 - Controlled input, necessary for network configuration
 
             self.arp_announced.append(ip_address)
             logger.debug(f"   📢 Announced ARP for {ip_address}")
@@ -292,7 +290,7 @@ class LANNetworkManager:
         """Get the MAC address of the network interface"""
         try:
             cmd = ["ip", "link", "show", self.interface]
-            result = subprocess.check_output(cmd, shell=False, text=True).strip()
+            result = subprocess.check_output(cmd, shell=False, text=True).strip()  # nosec B603 - Controlled command, necessary for system interaction
             lines = result.split("\n")
             for line in lines:
                 if "ether" in line:
@@ -310,7 +308,7 @@ class LANNetworkManager:
             mac = self._get_interface_mac()
             if mac:
                 cmd = ["arp", "-s", ip_address, mac]
-                subprocess.run(cmd, shell=False, stderr=subprocess.DEVNULL)
+                subprocess.run(cmd, shell=False, stderr=subprocess.DEVNULL)  # nosec B603 - Controlled input, necessary for network configuration
         except Exception:
             pass
 
@@ -367,19 +365,18 @@ class LANNetworkManager:
         try:
             setup_logging()  # Re-initialize logging for sudo context
             # Remove IP from interface
-            cmd = f"ip addr del {ip_address}/{cidr} dev {self.interface}"
-            subprocess.run(cmd, shell=True, capture_output=True)  # nosec B602 - Controlled input, necessary for complex command
+            cmd = ["ip", "addr", "del", f"{ip_address}/{cidr}", "dev", self.interface]
+            subprocess.run(cmd, capture_output=True)  # nosec B603 - Controlled input, necessary for network configuration
 
             # Remove from ARP cache
             subprocess.run(
-                f"arp -d {ip_address}", shell=True, stderr=subprocess.DEVNULL  # nosec B602 - Controlled input, necessary for command
+                ["arp", "-d", ip_address], stderr=subprocess.DEVNULL, check=False  # nosec B603 - Controlled input, necessary for network configuration
             )
 
             # Remove from neighbor table
             subprocess.run(
-                f"ip neigh del {ip_address} dev {self.interface}",
-                shell=True,  # nosec B602 - Controlled input, necessary for command
-                stderr=subprocess.DEVNULL,
+                ["ip", "neigh", "del", ip_address, "dev", self.interface],
+                stderr=subprocess.DEVNULL, check=False  # nosec B603 - Controlled input, necessary for network configuration
             )
 
             logger.info(f"✅ Removed virtual IP: {ip_address}")
@@ -393,7 +390,6 @@ class LANNetworkManager:
             self._save_ip_tracking()
 
             return True
-
         except subprocess.CalledProcessError as e:
             logger.warning(f"⚠️ Failed to remove IP {ip_address}: {e}")
             return False
@@ -452,7 +448,7 @@ class LANNetworkManager:
         """
         try:
             out = subprocess.check_output(
-                ["ip", "neigh", "show", ip_address], shell=False, text=True
+                ["ip", "neigh", "show", ip_address], shell=False, text=True  # nosec B603 - Controlled IP input, necessary for network testing
             ).strip()
             m = re.search(r"lladdr\s+([0-9a-f:]{17})", out, flags=re.IGNORECASE)
             if m:
@@ -466,7 +462,7 @@ class LANNetworkManager:
                     ["arp", "-n", ip_address],
                     shell=False,
                     text=True,
-                    stderr=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,  # nosec B603 - Controlled IP input, necessary for network testing
                 )
                 .strip()
                 .lower()

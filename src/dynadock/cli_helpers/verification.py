@@ -108,7 +108,7 @@ def test_url_with_curl(url: str, service: str, access_type: str) -> bool:
             "5",
             url,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=6)  # nosec B603 - Controlled URL input, necessary for service verification
 
         if result.returncode == 0:
             # Response body is in stdout, http_code is the last line of stderr if using -o -

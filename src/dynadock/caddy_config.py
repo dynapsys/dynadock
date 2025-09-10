@@ -190,7 +190,7 @@ class CaddyConfig:
             "--config",
             "/etc/caddy/Caddyfile",
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True)  # nosec B603 - Controlled command, necessary for Docker interaction
 
     def reload_caddy(self) -> None:
         """Reload the Caddy configuration in a running container."""
@@ -206,7 +206,7 @@ class CaddyConfig:
             "--config",
             "/etc/caddy/Caddyfile",
         ]
-        subprocess.run(cmd, check=True, capture_output=True)
+        subprocess.run(cmd, check=True, capture_output=True)  # nosec B603 - Controlled command, necessary for Docker interaction
 
     def stop_caddy(self) -> None:
         """Stop and remove the Caddy container if it exists."""

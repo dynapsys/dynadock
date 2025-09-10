@@ -849,11 +849,12 @@ def check_conflicts(
         # Proactively stimulate ARP entries to improve remote MAC detection
         for ip in service_ip_map.values():
             try:
-                import subprocess as _sub
-
-                _sub.run(
-                    f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2
-                )
+                subprocess.run(
+                    ["ping", "-c", "1", "-W", "1", ip],
+                    capture_output=True,
+                    timeout=2,
+                    check=False
+                )  # nosec B603 - Controlled IP input, necessary for network testing
             except Exception:
                 pass  # Ignore ping failures, this is just a best-effort ARP stimulation
         conflicts = lan_network_manager.detect_conflicts(
@@ -979,11 +980,12 @@ def check_conflicts(
         # Proactively stimulate ARP entries to improve remote MAC detection
         for ip in service_ip_map.values():
             try:
-                import subprocess as _sub
-
-                _sub.run(
-                    f"ping -c 1 -W 1 {ip}", shell=True, capture_output=True, timeout=2
-                )
+                subprocess.run(
+                    ["ping", "-c", "1", "-W", "1", ip],
+                    capture_output=True,
+                    timeout=2,
+                    check=False
+                )  # nosec B603 - Controlled IP input, necessary for network testing
             except Exception:
                 pass  # Ignore ping failures, this is just a best-effort ARP stimulation
         conflicts = lan_network_manager.detect_conflicts(
