@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 from .docker_manager import DockerManager  # noqa: E402
 from .port_allocator import PortAllocator  # noqa: E402
