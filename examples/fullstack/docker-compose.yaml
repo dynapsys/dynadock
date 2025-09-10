@@ -6,7 +6,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-8000}:80"
+      - "${FRONTEND_PORT:-8010}:80"
     environment:
       - REACT_APP_API_URL=https://api.dynadock.lan
       - NODE_ENV=development
@@ -24,7 +24,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "${BACKEND_PORT:-8001}:5000"
+      - "${BACKEND_PORT:-8011}:5000"
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/appdb
       - REDIS_URL=redis://redis:6379
